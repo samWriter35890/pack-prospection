@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "pack-solo",
+  "displayName": "Pack Solo",
+  "version": "1.0.0",
+  "description": "Assistant commercial du Pack Solo SenseAct : contacts, echanges, opportunites, relances et bilans, dans votre base NoCoDB.",
+  "author": {
+    "name": "SenseAct",
+    "email": "contact@senseact.fr",
+    "url": "https://senseact.fr"
+  },
+  "homepage": "https://senseact.fr",
+  "keywords": ["crm", "prospection", "nocodb", "senseact"],
+  "userConfig": {
+    "url_connecteur_nocodb": {
+      "type": "string",
+      "title": "URL de votre base NoCoDB",
+      "description": "L'adresse fournie par SenseAct, de la forme https://nocodb.senseact.fr/c/xxxxxxxx. Elle tient lieu de mot de passe : ne la partagez pas.",
+      "sensitive": true,
+      "required": true
+    }
+  }
+}

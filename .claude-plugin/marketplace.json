@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
+  "name": "senseact",
+  "owner": {
+    "name": "SenseAct",
+    "email": "contact@senseact.fr",
+    "url": "https://senseact.fr"
+  },
+  "metadata": {
+    "description": "Marche des plugins SenseAct pour l'assistant Claude.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "pack-solo",
+      "source": "./pack-solo",
+      "description": "Assistant commercial du Pack Solo SenseAct : contacts, echanges, opportunites, relances et bilans, dans votre base NoCoDB.",
+      "version": "1.0.0",
+      "author": {
+        "name": "SenseAct",
+        "email": "contact@senseact.fr",
+        "url": "https://senseact.fr"
+      },
+      "homepage": "https://senseact.fr",
+      "license": "LicenseRef-SenseAct-Proprietaire",
+      "keywords": ["crm", "prospection", "nocodb", "senseact"],
+      "category": "productivity"
+    }
+  ]
+}
