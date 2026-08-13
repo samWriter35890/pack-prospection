@@ -95,8 +95,21 @@ createRecords  Contacts
 
 - **`Nom complet` ne s'écrit pas** : c'est une formule.
 - **Pas d'email, pas de téléphone** : une capture LinkedIn n'en montre pas, et un email déduit d'un modèle `prenom.nom@` est un email faux.
-- Sur une fiche existante, compléter avec `updateRecords`, **sans jamais écraser une valeur renseignée** par une valeur lue sur l'image. L'organisation fait exception : elle ne se rattache pas après coup, voir les conventions ci-dessus.
+- Sur une fiche existante, compléter avec `updateRecords`, **sans écraser une valeur renseignée** par une valeur lue sur l'image. Deux exceptions, à connaître : l'organisation, qui ne se rattache pas après coup, voir les conventions ci-dessus ; et l'**identité**, quand un profil a été transmis, voir juste en dessous.
 - **Les organisations d'abord, les personnes ensuite**, dans cet ordre : le lien vers l'organisation ne s'écrit qu'à la création de la fiche. Sur un lot, cela veut dire un premier appel `createRecords` sur Organisations, puis un second sur Contacts avec les `Id` obtenus.
+
+#### Un profil transmis fait référence sur l'identité
+
+**Dès que l'utilisateur a transmis la capture du profil d'une personne, ce profil fait référence pour son identité, tant qu'il n'est pas explicitement contredit.** Concrètement : ne pas redemander à l'utilisateur les orthographes exactes qui sont lisibles à l'écran. Les corriger, et dire ce qui a été corrigé.
+
+Les champs concernés sont ceux que la personne déclare elle-même : `Prénom`, `Nom`, `Fonction` sur le contact, et `Nom` sur son organisation. Un nom mal orthographié en base vient presque toujours d'une saisie rapide ou d'une fiche créée avant d'avoir vu le profil : le profil est la meilleure source disponible, et redemander ce qui est sous les yeux fait perdre du temps sans rien fiabiliser.
+
+Cela ne déborde pas sur le reste. **Un email, un téléphone, une adresse saisis par l'utilisateur ne se remplacent jamais** par une lecture d'image, et une ligne coupée ou illisible reste écartée et signalée comme partout ailleurs.
+
+**Un nom faux se corrige toujours, c'est un lien faux qui ne se corrige pas.** La distinction est celle du constat sur les liens, et elle est plus favorable qu'il n'y paraît :
+
+- Le nom de l'organisation vit dans l'enregistrement Organisations. Le corriger là par `updateRecords` **le corrige partout**, y compris dans le libellé affiché sur le contact, puisque le lien pointe sur l'enregistrement et non sur son nom. Il n'y a **rien à toucher au lien**.
+- Ce qui reste irréparable est autre chose : un contact rattaché à la **mauvaise organisation**, c'est-à-dire au mauvais enregistrement. Là, le lien devrait changer, et il ne peut pas. Le signaler à l'utilisateur plutôt que de tenter une correction qui échouera.
 
 ### 5. Tracer les invitations acceptées
 
@@ -135,5 +148,5 @@ Un compte rendu court : combien créés, combien complétés, combien écartés 
 - **Aucune écriture avant validation du tableau de contrôle.**
 - **Cadre RGPD.** N'entrent en base que nom, fonction, organisation et coordonnées professionnelles. Ce qui a été lu sur un profil pour personnaliser un message reste transitoire, jamais stocké.
 - **Ne rien compléter au jugé** : un nom coupé, une société illisible, une ligne floue sont écartés et signalés.
-- **Ne jamais écraser une donnée saisie** par une donnée lue sur une image. La base fait foi, l'image est une source.
+- **La base fait foi sur les coordonnées, le profil transmis fait foi sur l'identité.** Un email ou un téléphone saisi ne se remplace jamais par une lecture d'image. Un nom, un prénom, une fonction ou un nom d'entreprise lus sur un profil que l'utilisateur a transmis corrigent la base, sans lui redemander de les réécrire.
 - **Une invitation envoyée n'est pas une invitation acceptée.** Ne tracer un échange que sur une capture qui montre effectivement une acceptation.
