@@ -43,6 +43,13 @@ Le cas est fréquent, parce que l'ordre réel des choses l'impose : la fiche se 
 
 Corriger le nom de l'organisation dans l'enregistrement Organisations le corrige **partout**, le lien pointant sur l'enregistrement et non sur son nom. En revanche, si le contact est rattaché à la **mauvaise organisation**, c'est le lien qui devrait changer, et un lien ne se met pas à jour : le signaler plutôt que d'essayer.
 
+**Distinguer les deux avant d'écrire, parce que renommer est destructeur.** « Crédut Mutuel » corrigé en « Crédit Mutuel » est une faute de frappe. « Crédit Mutuel » devenu « Harmonie Mutuelle » est une **autre société**, donc un mauvais lien. Deux tests, dans cet ordre :
+
+1. **L'enregistrement porte-t-il d'autres contacts ?** `queryRecords Contacts where=(Organisation,eq,<nom>)`. S'il en porte, le renommer renomme la société de tout le monde. Ne pas le faire, signaler.
+2. **Est-ce la même société, mal écrite ?** Si les deux noms désignent deux entreprises différentes, ce n'est jamais une correction d'orthographe, quel que soit le nombre de lettres communes.
+
+Quand c'est un mauvais lien sur un enregistrement isolé, créé à l'instant pour ce seul contact, le dire à l'utilisateur et proposer le rattrapage : créer la bonne organisation, et refaire la fiche du contact, puisque le lien ne s'écrit qu'à la création.
+
 Ce n'est pas une entorse au cadre RGPD ci-dessous, et il faut savoir pourquoi : nom, fonction et organisation sont précisément les champs que la base a vocation à porter. Corriger une identité fausse n'est pas enrichir une fiche avec du profil, c'est réparer ce qu'elle contient déjà. Le reste du profil, lui, sert au message puis disparaît. Le détail de la manœuvre est dans `import-capture-linkedin`.
 
 ### 2. Personnaliser sur du réel
@@ -55,16 +62,31 @@ Une accroche ne vaut que par son point d'accroche. Par ordre de force :
 
 Si aucun des trois n'est disponible, le dire. Une accroche sans point d'accroche est une accroche générique : elle abîme la réputation de l'expéditeur et il vaut mieux ne pas l'envoyer.
 
+**Un post qui parle d'un ancien employeur se situe avant de servir.** Le fil d'expérience dit lequel des deux postes est le poste actuel, et la date du changement. Un post de **départ** est un excellent point d'accroche, même six mois après. Une **félicitation d'ancienneté** dans une société que la personne a quittée est une bourde. Les deux se ressemblent au premier coup d'œil et ne se distinguent qu'en lisant le fil.
+
+Quand un échange réel existe déjà, il prime sur tout le reste : c'est le lien concret du niveau 1, et il n'empêche pas de citer un post, il dispense d'en chercher un.
+
 > **Cadre RGPD, non négociable.** Ce qui est lu sur un profil pour personnaliser le message reste **transitoire** : rien de tout cela n'est stocké en base. La base ne porte que les coordonnées professionnelles que l'utilisateur gère légitimement.
 
-### 3. Écrire
+### 3. Choisir le format, avant d'écrire une ligne
 
-Deux formats distincts, à ne pas confondre :
+Trois situations, et le mot « accroche » employé par l'utilisateur ne les distingue pas. **C'est l'état réel de la relation qui tranche, pas le mot employé.**
 
-| Situation | Format | Longueur |
+| Où en est la relation | Format | Longueur |
 |---|---|---|
-| Demande de connexion, note jointe | Note d'invitation | **300 caractères maximum**, espaces compris |
-| Connexion déjà acceptée, premier message | Message direct | 4 à 6 lignes |
+| Pas encore connectés | Note d'invitation | **300 caractères maximum**, espaces compris |
+| Connexion acceptée, jamais parlé | Message direct | 4 à 6 lignes |
+| **Déjà en base, avec un échange ou une affaire** | **Demander lequel** | selon la réponse |
+
+Le troisième cas est le piège, et il s'est produit en vrai. Quand la personne a déjà une fiche, un échange consigné et une affaire ouverte, les deux formats restent légitimes : la connexion peut ne pas exister encore, et un mot de suite après un appel, qui montre que le travail est lancé, est un bon message. **Ce qui n'est pas acceptable, c'est de choisir en silence**, parce que les deux formats n'ont ni la même longueur ni les mêmes règles, et que le texte produit ressemble alors aux deux sans être ni l'un ni l'autre.
+
+Une question, deux options, avant d'écrire :
+
+> Vous êtes déjà connectés sur LinkedIn, ou c'est encore une invitation à envoyer ? Dans le premier cas je vous fais un message de suite après votre appel, dans le second une note d'invitation, plus courte.
+
+**Le plafond de 300 caractères ne s'applique qu'à la note d'invitation.** Ne pas le faire peser sur un message direct, et ne pas non plus produire 315 caractères en les appelant une invitation.
+
+### 4. Écrire
 
 Règles communes :
 
@@ -72,14 +94,16 @@ Règles communes :
 - Dire **qui on est en une ligne**, **pourquoi cette personne précisément**, et rien d'autre.
 - **Aucune question fermée** dans une note d'invitation, aucune demande de rendez-vous.
 - Le ton de l'utilisateur, tel qu'il parle. Pas de ton corporate.
-- **Aucun tiret cadratin.**
+- **Aucun tiret cadratin**, ni dans le texte produit, ni dans les phrases dites autour. Le remplacer par une virgule ou deux points. L'utilisateur lit les deux, et c'est une signature d'écriture automatique.
 - Pas d'emoji sauf si l'utilisateur en utilise habituellement.
 
-Toujours **compter les caractères** d'une note d'invitation et annoncer le compte. Un texte tronqué par LinkedIn se termine au milieu d'un mot, et cela se voit.
+**Compter les caractères d'une note d'invitation, et raccourcir avant de proposer.** Le compte s'annonce avec le texte, sous la forme `287 caractères`. Un texte de 315 caractères a l'air d'aller : LinkedIn le tronque au milieu d'un mot, et cela se voit. Proposer un texte trop long puis annoncer qu'il est trop long ne sert à rien, l'utilisateur l'a déjà copié.
+
+**Un texte, dans la conversation. Un lot, dans un artefact.** Le bouton copier d'un artefact est commode, et c'est le bon support pour douze messages. Pour un seul texte court, il enterre le résultat derrière un clic que l'utilisateur doit d'abord apprendre à trouver, alors que le texte tenait à l'écran.
 
 Proposer **une version**, puis ajuster sur retour. Pas un catalogue de trois variantes.
 
-### 4. Préparer un lot, s'il y en a un
+### 5. Préparer un lot, s'il y en a un
 
 Quand l'utilisateur prépare une session de prospection, produire un texte par personne, jamais un modèle à trous : c'est précisément ce que le destinataire repère.
 
@@ -88,7 +112,7 @@ Rappeler les plafonds, une fois, sans moraliser :
 - Environ **20 à 25 invitations par jour**, **100 par semaine glissante**. Au-delà, LinkedIn restreint le compte.
 - **La note personnalisée est contingentée** sur un compte gratuit, et LinkedIn a déjà changé ce quota plusieurs fois. Si l'utilisateur bute dessus, envoyer l'invitation nue et garder le texte pour le premier message après acceptation.
 
-### 5. Poser un rappel, si l'utilisateur le veut
+### 6. Poser un rappel, si l'utilisateur le veut
 
 Par défaut, ce skill **n'écrit rien en base**, hors la correction d'identité vue à l'étape 1. Sur demande, une seule écriture utile de plus :
 
@@ -116,5 +140,6 @@ Ne pas consigner d'Échange : rien n'a encore été envoyé. La trace se pose à
 - **Le skill ne clique jamais et n'envoie jamais.** Il produit un texte, l'utilisateur agit.
 - **Rien de scrapé ne va en base.** L'enrichissement de profil sert au message, puis disparaît. **Une seule exception, la correction d'une identité fausse** : nom, prénom, fonction, nom de l'organisation. Ces champs sont ceux que la base porte de plein droit, et un profil transmis en est la meilleure source.
 - **Pas d'accroche sans point d'accroche.** Le dire plutôt que de produire du générique.
-- **Ne rien inventer sur la personne** : ni un post qu'elle n'a pas écrit, ni une connaissance commune supposée. Une accroche fausse se démasque en une réponse.
+- **Ne rien inventer sur la personne** : ni un post qu'elle n'a pas écrit, ni une connaissance commune supposée. Une accroche fausse se démasque en une réponse. Ce qui est **lisible sur le profil** n'est pas une invention : un changement de poste que le fil d'expérience date se cite sans réserve.
+- **Ne jamais choisir le format en silence** quand la personne est déjà en base. Note d'invitation et message de suite ne se plafonnent pas pareil, et le texte hybride qui sort d'un choix implicite ne convient à aucun des deux.
 - **300 caractères sur une note d'invitation**, comptés, pas estimés.

@@ -111,6 +111,8 @@ Cela ne déborde pas sur le reste. **Un email, un téléphone, une adresse saisi
 - Le nom de l'organisation vit dans l'enregistrement Organisations. Le corriger là par `updateRecords` **le corrige partout**, y compris dans le libellé affiché sur le contact, puisque le lien pointe sur l'enregistrement et non sur son nom. Il n'y a **rien à toucher au lien**.
 - Ce qui reste irréparable est autre chose : un contact rattaché à la **mauvaise organisation**, c'est-à-dire au mauvais enregistrement. Là, le lien devrait changer, et il ne peut pas. Le signaler à l'utilisateur plutôt que de tenter une correction qui échouera.
 
+**Les deux cas ne se distinguent pas au nombre de lettres qui changent.** « Crédut Mutuel » vers « Crédit Mutuel » est une faute de frappe. « Crédit Mutuel » vers « Harmonie Mutuelle » est une autre entreprise, donc un mauvais lien, même si le mot « Mutuel » survit. Avant tout `updateRecords` sur le `Nom` d'une organisation, **compter les contacts qu'elle porte** : un enregistrement partagé se renomme pour tout le monde, et personne ne s'en aperçoit.
+
 ### 5. Tracer les invitations acceptées
 
 Uniquement pour une capture d'invitations acceptées, un échange par personne :
@@ -150,3 +152,4 @@ Un compte rendu court : combien créés, combien complétés, combien écartés 
 - **Ne rien compléter au jugé** : un nom coupé, une société illisible, une ligne floue sont écartés et signalés.
 - **La base fait foi sur les coordonnées, le profil transmis fait foi sur l'identité.** Un email ou un téléphone saisi ne se remplace jamais par une lecture d'image. Un nom, un prénom, une fonction ou un nom d'entreprise lus sur un profil que l'utilisateur a transmis corrigent la base, sans lui redemander de les réécrire.
 - **Une invitation envoyée n'est pas une invitation acceptée.** Ne tracer un échange que sur une capture qui montre effectivement une acceptation.
+- **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.

@@ -67,3 +67,4 @@ Sur le choix de l'utilisateur, enchaîner **immédiatement** vers le skill. Ne p
 - **Aucune procédure d'un autre skill recopiée ici.** Citer le nom, c'est tout.
 - Une demande précise dès la première phrase : ne pas dérouler l'accueil, aller directement au skill concerné.
 - Une page suffit. Si ce skill grossit, c'est qu'il empiète sur un autre.
+- **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.

@@ -138,3 +138,4 @@ Sur une base presque vide, le dire en une phrase et s'arrêter. Un bilan sur tro
 - **Ne pas recopier les vues NoCoDB.** « À relancer », « Ma journée », « Pipeline » et « Journal » restent consultables sur mobile sans IA. Ce skill apporte l'analyse, pas la liste.
 - **Ni graphique, ni prévisionnel pondéré, ni probabilité.** Ils relèvent de l'option payante « Dashboard avancé », et le socle ne porte pas de champ probabilité.
 - **Ne jamais présenter un chiffre calculé de tête.** Tout nombre annoncé sort d'un appel. En cas de doute sur un résultat, le recouper par un `countRecords` plutôt que l'arrondir.
+- **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.
