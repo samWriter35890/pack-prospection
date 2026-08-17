@@ -23,6 +23,31 @@ C'est une position produit assumée : aucun envoi automatisé d'invitations dans
 
 ---
 
+## Le contexte du client, lu une fois par session
+
+Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, et ce qu'il ne fait pas.
+
+```
+queryRecords  Contexte  pageSize=1
+              fields=["Entreprise", "Qui je suis", "Ce que je vends", "À qui je le vends",
+                      "Ce qui me distingue", "Ce qui coince", "Comment je parle",
+                      "Signature", "Ce que je ne fais pas"]
+```
+
+**Une fois par session, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base. **Sur un lot de douze accroches, il se lit une fois pour les douze.**
+
+**Lire les neuf champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et les autres skills s'en serviront ensuite sans repayer l'appel.
+
+**Si la table est vide ou l'enregistrement absent :** le dire en une phrase, continuer quand même, et signaler que le texte sera générique tant que le contexte n'est pas rempli. **Ne jamais deviner** ce que l'utilisateur vend ni comment il signe. Un contexte inventé produit un texte qui sonne juste et qui est faux, ce qui est le pire des deux cas.
+
+**`Signature` se recopie, elle ne se réécrit pas.**
+
+**`Ce que je ne fais pas` est un interdit, pas une indication.** Rien de ce qui y figure ne se propose, ne se promet ni ne se sous-entend dans un texte destiné à un tiers.
+
+Ce que ce skill en fait, lui : **`Qui je suis` fournit la ligne de présentation, et `Ce qui me distingue` la raison d'être crédible.** Sur 300 caractères, ce sont les deux seuls champs qui séparent une invitation qui se lit d'une invitation qui se supprime. **`À qui je le vends` sert à vérifier que la personne approchée est bien une cible** : si elle n'y ressemble pas, le dire à l'utilisateur avant d'écrire, il a peut-être une raison, et il vaut mieux qu'il la donne.
+
+---
+
 ## Procédure
 
 ### 1. Retrouver la personne, si elle est en base
@@ -91,9 +116,9 @@ Une question, deux options, avant d'écrire :
 Règles communes :
 
 - **Pas de pitch.** Une invitation ne vend rien. Elle ouvre une relation.
-- Dire **qui on est en une ligne**, **pourquoi cette personne précisément**, et rien d'autre.
+- Dire **qui on est en une ligne**, tirée de `Qui je suis` et resserrée, **pourquoi cette personne précisément**, et rien d'autre. Ne pas réciter `Ce que je vends` dans une invitation : c'est exactement le pitch que la règle précédente interdit.
 - **Aucune question fermée** dans une note d'invitation, aucune demande de rendez-vous.
-- Le ton de l'utilisateur, tel qu'il parle. Pas de ton corporate.
+- **Le ton de `Comment je parle`**, tel que l'utilisateur parle. Ce champ dit le tutoiement ou le vouvoiement et les mots à éviter. Pas de ton corporate.
 - **Aucun tiret cadratin**, ni dans le texte produit, ni dans les phrases dites autour. Le remplacer par une virgule ou deux points. L'utilisateur lit les deux, et c'est une signature d'écriture automatique.
 - Pas d'emoji sauf si l'utilisateur en utilise habituellement.
 

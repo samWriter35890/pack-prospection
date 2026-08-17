@@ -23,6 +23,33 @@ Appelé directement, ou depuis `enregistrer-echange` quand le récit décrit une
 
 ---
 
+## Le contexte du client, lu une fois par session
+
+Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, et ce qu'il ne fait pas.
+
+```
+queryRecords  Contexte  pageSize=1
+              fields=["Entreprise", "Qui je suis", "Ce que je vends", "À qui je le vends",
+                      "Ce qui me distingue", "Ce qui coince", "Comment je parle",
+                      "Signature", "Ce que je ne fais pas"]
+```
+
+**Une fois par session, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base.
+
+**Lire les neuf champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et les autres skills s'en serviront ensuite sans repayer l'appel.
+
+**Si la table est vide ou l'enregistrement absent :** le dire en une phrase, continuer quand même, et signaler que le texte sera générique tant que le contexte n'est pas rempli. **Ne jamais deviner** ce que l'utilisateur vend ni comment il signe. Un contexte inventé produit un texte qui sonne juste et qui est faux, ce qui est le pire des deux cas.
+
+**`Signature` se recopie, elle ne se réécrit pas.**
+
+**`Ce que je ne fais pas` est un interdit, pas une indication.** Rien de ce qui y figure ne se propose, ne se promet ni ne se sous-entend dans un texte destiné à un tiers.
+
+Ce que ce skill en fait, lui : c'est le seul des quatre qui n'écrit pas de texte, et il s'en sert autrement. **`Ce que je vends` donne le vocabulaire du champ `Nom` de l'affaire**, celui du catalogue de l'utilisateur plutôt qu'une paraphrase de ce qu'il vient de raconter. Le Kanban Pipeline devient lisible parce que les affaires y portent des noms cohérents d'une ligne à l'autre.
+
+**Et `Ce que je ne fais pas` sert de contrôle avant d'ouvrir l'affaire.** Si le besoin décrit tombe hors périmètre, ne pas créer en silence : le signaler en une phrase et demander. Une affaire ouverte sur une prestation que l'utilisateur ne sait pas livrer pollue son pipeline, fausse son bilan, et finit en promesse quand `rediger-email` viendra écrire dessus.
+
+---
+
 ## Procédure
 
 ### 1. Créer, ou faire évoluer ? La question à trancher en premier

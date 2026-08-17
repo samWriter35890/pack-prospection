@@ -11,6 +11,31 @@ Ouvre la journée de travail commercial. Ce skill **lit** la base, restitue l'es
 
 ---
 
+## Le contexte du client, lu une fois par session
+
+Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, et ce qu'il ne fait pas.
+
+```
+queryRecords  Contexte  pageSize=1
+              fields=["Entreprise", "Qui je suis", "Ce que je vends", "À qui je le vends",
+                      "Ce qui me distingue", "Ce qui coince", "Comment je parle",
+                      "Signature", "Ce que je ne fais pas"]
+```
+
+**Une fois par session, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base.
+
+**Lire les neuf champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et `rediger-email`, `accroche-linkedin` ou `creer-opportunite` s'en serviront ensuite sans repayer l'appel. Un skill qui n'en lirait que trois obligerait le suivant à tout relire.
+
+**Si la table est vide ou l'enregistrement absent :** le dire en une phrase, continuer quand même, et signaler que les textes produits dans cette session seront génériques tant que le contexte n'est pas rempli. **Ne jamais deviner** ce que l'utilisateur vend ni comment il signe. Un contexte inventé produit un texte qui sonne juste et qui est faux, ce qui est le pire des deux cas.
+
+**`Signature` se recopie, elle ne se réécrit pas.**
+
+**`Ce que je ne fais pas` est un interdit, pas une indication.** Rien de ce qui y figure ne se propose, ne se promet ni ne se sous-entend dans un texte destiné à un tiers.
+
+Ce que ce skill en fait, lui : s'adresser à l'utilisateur par son prénom et sur son registre, tutoiement ou vouvoiement compris, et **proposer des routines qui ont un sens pour son métier**. Un solo qui vend de la formation et un loueur de matériel n'ouvrent pas la même journée.
+
+---
+
 ## Lire l'état, en trois appels
 
 Résoudre d'abord les identifiants de table avec `getTablesList`, une seule fois par session. Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
@@ -21,7 +46,7 @@ Résoudre d'abord les identifiants de table avec `getTablesList`, une seule fois
 | Les personnes à relancer | Contacts | `(Prochaine relance,lte,today)` | `Prochaine relance` asc |
 | Les réponses reçues récemment | Échanges | `(Sens,eq,Entrant)~and(Date,isWithin,pastNumberOfDays,7)` | `Date` desc |
 
-`pageSize` 25 sur les deux premiers, 10 sur le troisième. **Trois appels, pas quatre.** Si les trois listes sont vides, le dire en une phrase et proposer de prospecter, ne pas aller chercher ailleurs.
+`pageSize` 25 sur les deux premiers, 10 sur le troisième. **Trois appels pour l'état, pas quatre** : celui du contexte ci-dessus ne compte pas, il est payé une fois pour toute la session. Si les trois listes sont vides, le dire en une phrase et proposer de prospecter, ne pas aller chercher ailleurs.
 
 Sur Contacts, demander `fields` : `["Nom complet", "Prochaine relance", "Statut relation"]`. Sur Tâches et Échanges, **ne pas passer `fields`** : le nom du contact lié est nécessaire à la restitution, et il disparaît dès qu'on filtre les champs (voir la note ci-dessous).
 
@@ -56,8 +81,11 @@ Deux à quatre routines, numérotées, classées par urgence, formulées comme d
 | Préparer un rendez-vous | Un rendez-vous est proche | `rediger-email`, `tableau-de-bord` pour le contexte |
 | Rattraper les affaires dormantes | Rien à faire d'urgent aujourd'hui | `tableau-de-bord` |
 | Faire le point de la semaine | Vendredi, ou sur demande | `tableau-de-bord` |
+| Voir où en sont ses objectifs | Début ou fin de mois, **et seulement si la table `Objectifs` en porte** | `point-strategique` |
 
 Sur le choix de l'utilisateur, enchaîner **immédiatement** vers le skill. Ne pas commencer le travail ici.
+
+> **Ne jamais proposer `point-strategique` sans avoir vu un objectif.** Le proposer sur une table vide envoie l'utilisateur vers une compétence qui n'aura rien à lui dire. Si aucun objectif n'existe, la bonne proposition est de lui demander s'il veut s'en fixer un, ce qui est une conversation, pas un skill.
 
 ---
 

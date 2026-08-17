@@ -8,7 +8,7 @@ SenseAct est une agence d'automatisation et d'IA pour TPE et PME, basée à Renn
 
 Un assistant commercial pour indépendants et très petites structures. Il tient vos contacts, consigne vos échanges, suit vos affaires, prépare vos relances et vos messages, et vous rend un bilan de période. Vos données restent dans **votre** base NoCoDB, hébergée en France.
 
-Le plugin apporte 8 compétences, qui se déclenchent d'elles-mêmes quand vous formulez le besoin en langage courant. Il n'y a aucune commande à retenir.
+Le plugin apporte 9 compétences, qui se déclenchent d'elles-mêmes quand vous formulez le besoin en langage courant. Il n'y a aucune commande à retenir.
 
 ## Installer
 

@@ -4,7 +4,7 @@ Unité de duplication du socle Solo : le client installe **un plugin**, pas une 
 
 Spécification et raisonnement : [../plugin-pack-solo.md](../plugin-pack-solo.md). Schéma de la base : [../modele-base-nocodb.md](../modele-base-nocodb.md).
 
-## État au 11 août 2026
+## État au 17 août 2026
 
 | Skill ou fichier | État |
 |---|---|
@@ -16,16 +16,19 @@ Spécification et raisonnement : [../plugin-pack-solo.md](../plugin-pack-solo.md
 | `accroche-linkedin` | Rédigé, corrigé, **non éprouvé** (demande une capture d'écran) |
 | `import-capture-linkedin` | Rédigé, corrigé, **non éprouvé** (demande une capture d'écran) |
 | `tableau-de-bord` | Rédigé, **éprouvé** |
+| `point-strategique` | Rédigé le 17 août 2026, **non éprouvé** |
 | `.claude-plugin/plugin.json` | Écrit, installation à blanc jouée |
 | `.mcp.json` | Écrit, connecteur enregistré et substitution vérifiée |
 
 **Le plugin est complet et le parcours commercial a tourné de bout en bout** le 11 août 2026, sur un prospect fictif purgé ensuite. Deux défauts trouvés à cette occasion, corrigés dans les 7 skills d'action : un nom de champ inconnu est ignoré en silence à l'écriture, et un champ de lien ne se met jamais à jour, il ne s'écrit qu'à la création. Détail dans [../plugin-pack-solo.md](../plugin-pack-solo.md), constats 11 et 12.
 
-Restent hors du plugin : le cheat-sheet client et le canal de distribution.
+**Neuvième compétence ajoutée le 17 août 2026**, `point-strategique`, avec le passage du schéma en v1.3 : deux tables de cadrage, `Contexte` et `Objectifs`. Quatre compétences lisent désormais le contexte du client une fois par session, et `point-strategique` compare les objectifs au réel **sans jamais combler un objectif absent**. Sa frontière avec `tableau-de-bord` a été écrite avant elle : [../eprouver-le-declenchement.md](../eprouver-le-declenchement.md).
+
+Restent hors du plugin : le cheat-sheet client et le canal de mise à jour.
 
 Chacun est déclenchable directement ou depuis `accueil`. Les trois premiers forment la chaîne minimale : ouvrir sa journée, consigner un échange, faire entrer une personne inconnue.
 
-Chaque skill d'action rappelle en tête le même bloc « Conventions d'appel de la base ». **C'est volontaire** : un skill se charge seul, sans garantie qu'un autre soit en contexte. La duplication est le prix de l'autonomie. Si ce bloc change, il change dans les sept.
+Chaque skill d'action rappelle en tête le même bloc « Conventions d'appel de la base ». **C'est volontaire** : un skill se charge seul, sans garantie qu'un autre soit en contexte. La duplication est le prix de l'autonomie. Si ce bloc change, il change dans les huit. **Le bloc « Le contexte du client, lu une fois par session » est le second bloc délibérément dupliqué**, depuis le 17 août 2026, dans quatre skills seulement : `accueil`, `accroche-linkedin`, `rediger-email` et `creer-opportunite`.
 
 ## Règles qui gouvernent ce dossier
 
@@ -36,14 +39,14 @@ Chaque skill d'action rappelle en tête le même bloc « Conventions d'appel de 
 
 ## Installer chez un client
 
-Le plugin s'installe depuis un marché, pas par copie de fichiers. **Le canal de distribution n'est pas encore arrêté** : un dépôt de marché privé reste à créer.
+Le plugin s'installe depuis un marché, pas par copie de fichiers. **Chez un client, il ne s'installe pas depuis ce marché** : vérifié le 12 août 2026, l'application Claude refuse une forge auto-hébergée comme source. Le client reçoit une **archive fabriquée pour lui** par `../construire-livraison.sh --client <nom>`, et la téléverse. Ce marché sert au poste de SenseAct et à la ligne de commande.
 
-La cible client est l'**application Claude**, onglet Chat : `Customize`, onglet `Plugins`, ajouter le marché par son dépôt git, puis installer. La procédure en ligne de commande ci-dessous est celle du poste de SenseAct, et sert de recette de contrôle.
+La cible client est **Claude Desktop**, où Chat et Cowork sont deux positions d'une bascule du composeur : `Customize`, onglet `Plugins`, ajouter le marché par son dépôt git, puis installer. La procédure en ligne de commande ci-dessous est celle du poste de SenseAct, et sert de recette de contrôle.
 
 1. `claude plugin marketplace add <le marché>`
 2. `claude plugin install pack-solo@<le marché>`, ou l'installer depuis `/plugin` dans l'application.
 3. À l'activation, **l'URL du connecteur NoCoDB** de ce client est demandée. C'est le seul geste de configuration. Éprouvé en ligne de commande, **pas encore dans l'onglet Plugins de l'application** : voir [../plugin-pack-solo.md](../plugin-pack-solo.md), section « Où le plugin s'installe ».
-4. Vérifier : `claude plugin details pack-solo` doit annoncer 8 skills et 1 serveur MCP, et `claude mcp list` doit joindre `plugin:pack-solo:nocodb`.
+4. Vérifier : `claude plugin details pack-solo` doit annoncer 9 skills et 1 serveur MCP, et `claude mcp list` doit joindre `plugin:pack-solo:nocodb`.
 
 > **`claude mcp list` affiche l'URL du connecteur en clair.** Ne pas la lancer en partage d'écran, ni dans une session dont la transcription est conservée. `claude plugin details` suffit pour la vérification courante, et ne montre rien de sensible.
 

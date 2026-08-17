@@ -22,6 +22,31 @@ Prépare un email à une personne de la base, à partir de son historique réel.
 
 ---
 
+## Le contexte du client, lu une fois par session
+
+Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, et ce qu'il ne fait pas.
+
+```
+queryRecords  Contexte  pageSize=1
+              fields=["Entreprise", "Qui je suis", "Ce que je vends", "À qui je le vends",
+                      "Ce qui me distingue", "Ce qui coince", "Comment je parle",
+                      "Signature", "Ce que je ne fais pas"]
+```
+
+**Une fois par session, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base.
+
+**Lire les neuf champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et les autres skills s'en serviront ensuite sans repayer l'appel.
+
+**Si la table est vide ou l'enregistrement absent :** le dire en une phrase, continuer quand même, et signaler que le texte sera générique tant que le contexte n'est pas rempli. **Ne jamais deviner** ce que l'utilisateur vend ni comment il signe. Un contexte inventé produit un texte qui sonne juste et qui est faux, ce qui est le pire des deux cas.
+
+**`Signature` se recopie, elle ne se réécrit pas.**
+
+**`Ce que je ne fais pas` est un interdit, pas une indication.** Rien de ce qui y figure ne se propose, ne se promet ni ne se sous-entend dans un texte destiné à un tiers.
+
+Ce que ce skill en fait, lui : **`Comment je parle` décide du tutoiement, du registre et des mots à éviter. `Signature` clôt le mail. `Ce que je vends` et `Ce que je ne fais pas` bornent ce qui peut être proposé.** C'est un email : il sort de chez l'utilisateur avec son nom dessus. Aucun autre skill n'a autant besoin de ces quatre champs.
+
+---
+
 ## Procédure
 
 ### 1. Trouver la personne
@@ -59,10 +84,11 @@ Règles de forme :
 
 - **Court.** Cinq à dix lignes. Un dirigeant lit sur mobile.
 - **Une seule demande**, formulée clairement, en fin de message.
-- **Le ton de l'utilisateur**, pas un ton générique. S'il tutoie ses clients, tutoyer. S'il signe « Bien à vous », signer ainsi.
+- **Le ton de `Comment je parle`**, pas un ton générique. Ce champ dit le tutoiement ou le vouvoiement, le registre, et les mots à ne pas employer. S'il est vide, vouvoyer par défaut et le signaler.
 - **Aucun tiret cadratin.** Utiliser la virgule ou les deux points.
 - Pas de formule creuse (« j'espère que vous allez bien », « je me permets de revenir vers vous »), pas de superlatif, pas de jargon.
-- Signer avec ce que l'utilisateur utilise habituellement, sans l'inventer.
+- **Signer en recopiant `Signature`**, tel quel. Ce champ existe précisément pour qu'aucune signature ne soit inventée. S'il est vide, s'arrêter avant la signature et demander à l'utilisateur comment il signe, plutôt que d'en fabriquer une.
+- **Ne rien proposer qui figure dans `Ce que je ne fais pas`.** C'est le garde-fou qui coûte le plus cher quand il manque : un email est irrattrapable une fois parti, et une prestation promise par erreur engage l'utilisateur devant son client.
 
 Puis **s'arrêter et demander**. Ne rien écrire en base tant que l'utilisateur n'a pas validé et envoyé.
 

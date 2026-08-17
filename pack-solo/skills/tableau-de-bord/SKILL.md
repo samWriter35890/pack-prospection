@@ -9,6 +9,8 @@ Fait le point **périodique** : bilan de semaine ou de mois, état du pipeline, 
 
 Le quotidien n'est pas ici : les relances du jour, les réponses reçues et les échanges récents relèvent de `accueil`. Ce skill répond à « où j'en suis », pas à « par quoi je commence ».
 
+**Les objectifs ne sont pas ici non plus.** Dès que l'utilisateur parle de sa cible, de ce qu'il s'était fixé, ou demande s'il est dans les clous, c'est `point-strategique` qui répond, parce qu'il faut lire la table `Objectifs` pour lui répondre. La frontière, en une question : la demande garde-t-elle un sens sur une base qui ne porte aucun objectif ? Si oui, elle est ici.
+
 **Il n'écrit rien.** Il lit, il calcule, il interprète.
 
 ---
@@ -22,6 +24,10 @@ Le quotidien n'est pas ici : les relances du jour, les réponses reçues et les 
 - **Un tri s'écrit `sort=[{"field": "Date", "description": "desc"}]`.** La clé qui porte le sens s'appelle bien `description`, c'est un défaut de nommage du connecteur. Une chaîne comme `"Date desc"` est refusée.
 - **Filtrer et compter côté requête**, jamais en rapatriant la table pour compter soi-même. C'est la règle qui rend ce skill tenable sans dashboard natif.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Un champ de **compteur de liens**, lui, survit à `fields`.
+
+> **Une fenêtre de dates ne s'écrit pas avec `btw`, malgré la documentation de l'outil.** `(Date,btw,2026-08-01,2026-08-31)` échoue, sur un champ `Date` comme sur un champ `CreatedTime` : `Error: '2026-08-01' is not supported.` La forme qui marche encadre la période avec deux comparaisons : `(Date,gte,exactDate,2026-08-01)~and(Date,lte,exactDate,2026-08-31)`. **La borne haute inclut la journée entière**, même horodatée. Vérifié le 17 août 2026 aux deux bornes.
+>
+> C'est ce qui rend un **mois calendaire** mesurable. Les fenêtres `isWithin,pastNumberOfDays,30` utilisées plus bas sont des fenêtres **glissantes** : elles conviennent à « ces trente derniers jours », pas à « le mois d'août ». Quand l'utilisateur demande un mois, il pense au mois calendaire : employer alors la forme `exactDate`.
 
 ---
 
