@@ -24,6 +24,7 @@ Le quotidien n'est pas ici : les relances du jour, les réponses reçues et les 
 - **Un tri s'écrit `sort=[{"field": "Date", "description": "desc"}]`.** La clé qui porte le sens s'appelle bien `description`, c'est un défaut de nommage du connecteur. Une chaîne comme `"Date desc"` est refusée.
 - **Filtrer et compter côté requête**, jamais en rapatriant la table pour compter soi-même. C'est la règle qui rend ce skill tenable sans dashboard natif.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Un champ de **compteur de liens**, lui, survit à `fields`.
+- **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 > **Une fenêtre de dates ne s'écrit pas avec `btw`, malgré la documentation de l'outil.** `(Date,btw,2026-08-01,2026-08-31)` échoue, sur un champ `Date` comme sur un champ `CreatedTime` : `Error: '2026-08-01' is not supported.` La forme qui marche encadre la période avec deux comparaisons : `(Date,gte,exactDate,2026-08-01)~and(Date,lte,exactDate,2026-08-31)`. **La borne haute inclut la journée entière**, même horodatée. Vérifié le 17 août 2026 aux deux bornes.
 >
@@ -77,6 +78,14 @@ Un `aggregate` sur Opportunités, comme ci-dessus : montant et nombre d'affaires
 ### 2. Ce qui s'est conclu sur la période
 
 Gagnées et perdues, filtrées sur `Clôture prévue`. Toujours **les deux**, jamais les gagnées seules : un taux de transformation se lit sur les deux nombres.
+
+**Puisque ce bloc filtre sur `Clôture prévue`, compter aussi ce qu'il ne verra jamais :**
+
+```
+countRecords  Opportunités  where=(Étape,in,Identifiée,Contactée,RDV,Proposition)~and(Clôture prévue,blank)
+```
+
+**Le dire quand il y en a**, en une ligne : « deux affaires en cours n'ont pas de date de clôture prévue, elles ne compteront dans aucun bilan tant qu'elle manque. » Ces affaires-là seraient signées demain sans rien apporter au chiffre du mois, et rien ne le signalerait : le bilan resterait juste au sens du calcul et faux au sens du réel. **Un trou de mesure se signale, il ne se comble pas tout seul** : la date se pose dans `creer-opportunite`, qui la réclame au passage en `Proposition`.
 
 ### 3. L'activité
 
@@ -139,9 +148,10 @@ Sur une base presque vide, le dire en une phrase et s'arrêter. Un bilan sur tro
 
 ## Garde-fous
 
-- **Aucune écriture.** Même une tâche qui semblerait évidente : la proposer, laisser le skill concerné la créer.
+- **Aucune écriture.** Même une tâche qui semblerait évidente : la proposer, laisser le skill concerné la créer. **Une tâche à clore part vers `enregistrer-echange`, avec son `Id`** : c'est lui qui écrit `Statut: Fait`, même sans échange à consigner. Rendre ce service ici serait violer la règle, et le rendre nulle part serait pire : il a sa porte, elle est nommée.
 - **Compter côté requête.** Jamais de rapatriement de table pour compter soi-même : c'est lent, coûteux, et faux dès que la base grossit.
 - **Ne pas recopier les vues NoCoDB.** « À relancer », « Ma journée », « Pipeline » et « Journal » restent consultables sur mobile sans IA. Ce skill apporte l'analyse, pas la liste.
 - **Ni graphique, ni prévisionnel pondéré, ni probabilité.** Ils relèvent de l'option payante « Dashboard avancé », et le socle ne porte pas de champ probabilité.
 - **Ne jamais présenter un chiffre calculé de tête.** Tout nombre annoncé sort d'un appel. En cas de doute sur un résultat, le recouper par un `countRecords` plutôt que l'arrondir.
+- **Une date se dit telle qu'elle est en base.** « hier », « la semaine dernière », « il y a un mois » sont des calculs, et ils tombent faux exactement comme un total : les poser contre la date du jour avant de les écrire, ou citer la date. Une date fausse dans une phrase juste passe inaperçue.
 - **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.

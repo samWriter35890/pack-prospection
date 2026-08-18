@@ -30,6 +30,7 @@ Répond à **« où j'en suis de ce que je m'étais fixé »**. Lit les objectif
 - **Un tri s'écrit `sort=[{"field": "Échéance", "description": "asc"}]`.** La clé qui porte le sens s'appelle bien `description`, c'est un défaut de nommage du connecteur. Une chaîne comme `"Échéance asc"` est refusée.
 - **Filtrer et compter côté requête**, jamais en rapatriant la table pour compter soi-même.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
+- **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 > ### Une fenêtre de dates ne s'écrit pas avec `btw`, malgré la documentation de l'outil
 >
@@ -113,6 +114,22 @@ aggregate  Opportunités
 > **`aggregate` ne comprend que les identifiants de colonne, jamais les titres.** Un titre renvoie `{}`, **sans message d'erreur** : c'est la seule réponse silencieuse de ce connecteur. Lire `getTableSchema` une fois par session sur Opportunités, et ne s'en servir que pour l'indicateur « Chiffre signé ». Les six autres passent par `countRecords`, qui n'a besoin d'aucun identifiant de colonne.
 
 > **« Propositions en cours » est un stock, pas un flux, et cela se dit à l'utilisateur.** La base ne garde **aucun historique d'étape** : une affaire passée de Proposition à Gagnée n'a laissé aucune trace de son passage. On sait donc combien d'affaires sont en proposition **aujourd'hui**, jamais combien en ont été émises dans le mois. Formuler au présent, toujours : « vous avez 3 propositions en cours », jamais « vous avez fait 3 propositions ce mois-ci ». La seconde phrase serait une invention, et elle passerait inaperçue.
+
+**Sur un objectif de chiffre signé, compter aussi ce que la mesure ne verra jamais :**
+
+```
+countRecords  Opportunités  where=(Étape,in,Identifiée,Contactée,RDV,Proposition)~and(Clôture prévue,blank)
+```
+
+`Chiffre signé` filtre sur `Clôture prévue` : une affaire sans cette date apportera **0 €** à la cible, même signée, et rien ne le dira. **Le signaler quand il y en a**, en une ligne, et poursuivre : « deux affaires en cours n'ont pas de date de clôture prévue, elles ne compteront dans aucun bilan tant qu'elle manque. » La date se pose dans `creer-opportunite`, pas ici.
+
+### L'indicateur mesure large, l'objectif dit étroit
+
+Les sept indicateurs comptent des enregistrements, ils ne lisent pas le texte de l'objectif. Quand le champ `Objectif` nomme un produit, un segment ou un type de client que la base ne sait pas distinguer, « Signer 3 **Packs Solo** », « 4 rendez-vous **de découverte** », **le dire une fois, en une phrase, et poursuivre** : « je compte tout le chiffre signé, la base ne distingue pas les Packs Solo du reste ».
+
+**Ne jamais présenter une affaire nommée comme comptant dans un objectif que l'indicateur ne sait pas filtrer.** Citer une affaire, c'est affirmer qu'elle entre dans la cible. Sur un objectif large, on annonce le total et la cible, sans désigner qui y contribue.
+
+**Ne pas corriger l'objectif de l'utilisateur pour autant.** Ce n'est pas la cible qui est mal posée, c'est la mesure qui est plus grossière qu'elle : le garde-fou « ne pas modifier `Objectif` ni `Cible` » tient. Le dire est la seule réponse honnête.
 
 ---
 
@@ -207,6 +224,8 @@ updateRecords  Objectifs  id=1  {"Statut": "Atteint",
 - **Ne jamais se rabattre sur un bilan d'activité** faute d'objectif. C'est le travail de `tableau-de-bord`, et lui donner le nom d'un point stratégique trompe l'utilisateur sur ce qu'il lit.
 - **Ne jamais chiffrer un objectif `Autre (non mesuré)`**, ni par un pourcentage, ni par un indicateur de substitution.
 - **Ne jamais présenter un chiffre calculé de tête.** Tout nombre annoncé sort d'un appel. En cas de doute, recouper par un `countRecords` plutôt qu'arrondir.
+- **Une date se dit telle qu'elle est en base.** « hier », « la semaine dernière », « il y a un mois » sont des calculs, et ils tombent faux exactement comme un total : les poser contre la date du jour avant de les écrire, ou citer la date. Une date fausse dans une phrase juste passe inaperçue.
+- **L'indicateur mesure plus large que l'objectif ne le dit**, dès que celui-ci nomme un produit ou un segment. Le dire une fois, et ne jamais citer une affaire comme comptant dans une cible que l'indicateur ne sait pas filtrer.
 - **Un seul comptage par indicateur**, celui du tableau. Deux mesures différentes du même objectif d'un mois sur l'autre valent moins que pas de mesure du tout.
 - **`Propositions en cours` se dit au présent.** C'est un stock : la base ne porte pas d'historique d'étape.
 - **Ne pas modifier `Objectif` ni `Cible`** sans que l'utilisateur les redonne lui-même. Corriger une cible pour qu'elle colle au réel vide la compétence de tout son sens.

@@ -1,6 +1,6 @@
 ---
 name: enregistrer-echange
-description: Consigner une interaction avec un contact, appel, email reçu ou envoyé, message LinkedIn, rendez-vous, SMS. À utiliser dès que l'utilisateur raconte un échange qui vient d'avoir lieu, ou dicte un compte rendu. Crée la trace dans le journal et la tâche de suite si nécessaire.
+description: Consigner une interaction avec un contact, appel, email reçu ou envoyé, message LinkedIn, rendez-vous, SMS. À utiliser dès que l'utilisateur raconte un échange qui vient d'avoir lieu, ou dicte un compte rendu. Crée la trace dans le journal et la tâche de suite si nécessaire. À utiliser aussi pour refermer une tâche accomplie, quand l'utilisateur dit qu'une chose est faite ou demande de la marquer comme faite.
 ---
 
 # Enregistrer un échange
@@ -19,6 +19,7 @@ Transforme un récit parlé en une trace propre dans le journal : un Échange da
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste, ne jamais traduire ni abréger.
 - **Filtrer côté requête**, jamais en rapatriant la table. Syntaxe `(champ,opérateur,valeur)`, combinée par `~and` et `~or`.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Utiliser `fields` quand aucun nom lié n'est utile, l'omettre sinon.
+- **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 ---
 
@@ -90,7 +91,42 @@ createRecords  Échanges
 - `Résumé` : garder ce que l'utilisateur a dit, y compris les détails humains qui serviront dans six mois. C'est la valeur du journal.
 - **Aucun tiret cadratin.**
 
-### 4. Créer la tâche de suite, s'il y en a une
+### 4. Refermer ce que l'échange termine
+
+Un échange n'ajoute pas seulement au journal : il **clôt** presque toujours quelque chose. C'est l'étape qu'on saute, et celle qui laisse derrière elle une tâche fantôme et une affaire figée à une étape périmée. L'utilisateur, lui, croit sa base à jour.
+
+Lire les tâches ouvertes de la personne, et de l'affaire quand il y en a une :
+
+```
+queryRecords  Tâches  where=(Contact,eq,Marie Le Goff)~and(Statut,neq,Fait)
+```
+
+**Deux choses à regarder, dans cet ordre.**
+
+**La tâche que l'échange accomplit.** « J'ai envoyé le devis » referme la tâche « Envoyer le devis ». La nommer, la proposer, attendre le mot de l'utilisateur, puis :
+
+```
+updateRecords  Tâches  id=1  {"Statut": "Fait"}
+```
+
+**L'étape de l'affaire.** Un devis parti, une proposition envoyée, un rendez-vous tenu la font bouger. La proposer, jamais la poser seul : une étape est une information commerciale, pas une conséquence mécanique. La bascule appartient à `creer-opportunite`, étape 4, qui pose du même geste la relance obligatoire d'une proposition et réclame la date de clôture prévue.
+
+> **Proposer, pas écrire d'office.** Deviner qu'un échange referme une tâche est une inférence, et une tâche fermée à tort disparaît de « Ma journée » sans laisser de trace. Ce qui n'est pas négociable, c'est de **regarder** et de **demander** : rendre la main sans avoir ouvert la liste des tâches est la faute, pas le fait de ne pas avoir écrit.
+
+**Ne pas retoucher l'échéance d'une tâche qu'on referme.** Elle dit quand la chose était attendue, pas quand elle a été faite. Une tâche close en retard reste close en retard, et ce retard est une information.
+
+#### Refermer une tâche sans échange à consigner
+
+L'utilisateur dit « c'est fait », ou demande de marquer une tâche comme faite, sans rien raconter à consigner. **C'est ce skill qui écrit**, sans passer par les étapes 1 à 3 : retrouver la tâche, la nommer pour lever toute ambiguïté, et écrire le `Statut`.
+
+```
+queryRecords  Tâches  where=(Statut,neq,Fait)~and(Tâche,like,%devis%)
+updateRecords  Tâches  id=1  {"Statut": "Fait"}
+```
+
+`accueil` et `tableau-de-bord` renvoient ici, parce qu'ils n'écrivent rien. **Plusieurs tâches possibles : demander laquelle**, en les citant avec leur échéance. Fermer la mauvaise est indolore sur le moment et coûteux trois semaines plus tard.
+
+### 5. Créer la tâche de suite, s'il y en a une
 
 Si l'échange appelle une action, elle va dans **Tâches**, jamais dans le résumé sous forme de « à faire ». Source unique.
 
@@ -113,7 +149,7 @@ createRecords  Tâches
 
 Sans échéance annoncée, en proposer une plutôt que de laisser le champ vide : une tâche sans date ne remonte jamais dans « Ma journée ».
 
-### 5. Reporter la prochaine relance
+### 6. Reporter la prochaine relance
 
 Si une date de rappel est évoquée, la porter sur le contact :
 
@@ -123,7 +159,7 @@ updateRecords  Contacts  id=12  {"Prochaine relance": "2026-08-17"}
 
 C'est ce champ qui fait remonter la personne dans la vue « À relancer » et dans l'accueil du matin. Ne pas l'oublier quand l'utilisateur dit « je le rappelle la semaine prochaine ».
 
-### 6. Confirmer
+### 7. Confirmer
 
 Une phrase, pas un tableau. « C'est noté : appel du 10 août avec Marie Le Goff sur le devis, relance posée au 17, et une tâche pour envoyer le devis révisé mercredi. »
 
@@ -135,4 +171,6 @@ Une phrase, pas un tableau. « C'est noté : appel du 10 août avec Marie Le Gof
 - **Une chose à faire va dans Tâches**, jamais dans le texte du résumé.
 - **Ne rien inventer** : ni montant, ni date, ni intention que l'utilisateur n'a pas énoncés. Si un champ manque, le laisser vide ou demander.
 - **Plusieurs échanges dans un même récit** (« j'ai appelé trois personnes ce matin ») : un enregistrement par personne, pas un fourre-tout. `createRecords` accepte plusieurs enregistrements en un appel.
+- **Une tâche se referme sur le mot de l'utilisateur, jamais sur une déduction.** Regarder les tâches ouvertes est obligatoire, les fermer ne l'est pas.
+- **Rendre la main sans avoir regardé les tâches ouvertes est une faute**, au même titre qu'un échange sans contact. Un échange qui accomplit une tâche et la laisse ouverte fabrique un retard qui n'existe pas.
 - **Ne jamais modifier ou supprimer un échange existant** pour « corriger » un contenu : en créer un nouveau, sauf demande explicite de correction. **Une seule exception, le rattachement à une affaire**, qui n'a pas d'autre voie : la procédure de suppression et recréation est décrite à l'étape 2, et elle recopie tous les champs.

@@ -20,6 +20,7 @@ Appelé directement, ou depuis `enregistrer-echange` quand le récit décrit une
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien, et seulement à la création.** `updateRecords` sur un champ de lien échoue toujours, quelle que soit la forme employée : c'est une limite du connecteur, pas une erreur de syntaxe. **Conséquence : créer dans l'ordre.** Un enregistrement créé sans son lien ne peut plus être rattaché depuis l'assistant.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste, ne jamais traduire ni abréger.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Utiliser `fields` quand aucun nom lié n'est utile, l'omettre sinon.
+- **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 ---
 
@@ -106,6 +107,15 @@ updateRecords  Opportunités  id=4  {"Étape": "Proposition", "Montant estimé":
 
 Un devis chiffré est l'occasion de corriger le montant estimé. Le faire dans le même appel.
 
+**Un passage à `Proposition` réclame `Clôture prévue` si le champ est vide.** C'est le moment où une date de décision existe : on vient d'envoyer un chiffre, on sait quand on espère la réponse. La demander en une phrase, « quand espérez-vous une réponse ? », et l'écrire dans le même appel :
+
+```
+updateRecords  Opportunités  id=4  {"Étape": "Proposition", "Montant estimé": 2950,
+                                    "Clôture prévue": "2026-09-15"}
+```
+
+Si l'utilisateur ne sait pas, **proposer une date et le dire**, plutôt que de laisser vide. Ce n'est pas une invention : le champ s'appelle « prévue », et une prévision se corrige. Le laisser vide, en revanche, ne se corrige jamais tout seul : les deux compétences de bilan filtrent le conclu sur ce champ, et **une affaire sans date de clôture n'est comptée nulle part, même gagnée**. Elle ne produit aucune erreur, elle produit un zéro crédible.
+
 **Un passage à `Proposition` crée systématiquement une tâche de relance datée** : une proposition sans relance posée est une affaire perdue par oubli.
 
 ```
@@ -142,6 +152,7 @@ Une phrase. « L'affaire site vitrine passe en proposition à 2 950 €, relance
 ## Garde-fous
 
 - **Une affaire par sujet vendu, pas une par échange.** Le pipeline doit rester lisible en un coup d'oeil.
-- **Ne rien inventer** : ni montant, ni date de clôture, ni étape. Une affaire « Identifiée » sur laquelle rien n'est sûr vaut mieux qu'une affaire « Proposition » optimiste.
+- **Ne rien inventer** : ni montant, ni étape. Une affaire « Identifiée » sur laquelle rien n'est sûr vaut mieux qu'une affaire « Proposition » optimiste.
+- **Une affaire sans `Clôture prévue` n'apparaît dans aucun bilan, même gagnée.** Le champ se pose au plus tard au passage en `Proposition`. C'est la seule date qui se propose plutôt que de rester vide, et proposer une prévision datée n'est pas l'inventer : c'est la seule à porter « prévue » dans son nom.
 - **Ne pas reculer une étape en silence.** Si l'affaire régresse, le dire et demander confirmation : c'est une information commerciale, pas une correction de saisie.
 - **Le récit de l'échange ne va pas ici**, il va dans `enregistrer-echange`. `Notes` porte le contexte durable de l'affaire, pas son journal.

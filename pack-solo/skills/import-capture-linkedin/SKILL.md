@@ -20,6 +20,7 @@ C'est le mode d'alimentation courant du Pack : robuste par construction, une ref
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien, et seulement à la création.** `updateRecords` sur un champ de lien échoue toujours, quelle que soit la forme employée : c'est une limite du connecteur, pas une erreur de syntaxe. **Conséquence : créer dans l'ordre.** Un enregistrement créé sans son lien ne peut plus être rattaché depuis l'assistant.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`.
+- **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 ---
 
@@ -65,6 +66,18 @@ Avant toute écriture, montrer ce qui va se passer, en trois blocs :
 **N'écrire qu'après validation explicite.** La lecture d'image se trompe sur les noms rares, les particules et les accents, et une base polluée ne se nettoie jamais. Cette étape n'est pas une politesse, c'est le garde-fou du skill.
 
 ### 4. Écrire
+
+#### Avant d'écrire : les contacts sans organisation, une question pour tout le lot
+
+Isoler les personnes dont la capture ne montre aucune entreprise, et **poser une seule question pour l'ensemble**, jamais une par personne :
+
+> Trois de ces personnes n'affichent pas d'entreprise : Thomas Louedoc, X, Y. Savez-vous où elles travaillent ? Sans organisation, je ne pourrai plus les rattacher ensuite.
+
+Puis écrire, avec ce que l'utilisateur a donné.
+
+> **Un contact créé sans organisation ne se rattache jamais depuis l'assistant.** Sur un import, l'absence d'organisation sur la capture n'est pas une réponse : c'est ce que LinkedIn affiche, pas ce que l'utilisateur sait. Demander pour tout le lot en une fois, accepter « je ne sais pas » et le dire, et ne laisser le lien vide que là. Un indépendant qui facture à son nom prend une organisation à son nom.
+
+**Ne pas bloquer l'import pour autant.** Un lot de quinze relations ne se transforme pas en quinze questions, et un contact non créé est pire qu'un contact sans organisation. Une question, la réponse, puis on écrit.
 
 Les organisations d'abord, puisque les contacts pointent dessus.
 
@@ -133,6 +146,8 @@ createRecords  Échanges
 | `Canal` | Appel · Email · LinkedIn · RDV · SMS · Autre |
 | `Sens` | Entrant · Sortant |
 
+**La date de l'échange se lit sur la capture.** LinkedIn affiche « Connexion le 17 août 2026 » sous chaque relation : c'est cette date qui va dans le champ `Date`. Sans date lisible, prendre le jour de l'import et le dire. **Ne jamais la déduire** d'une impression de fraîcheur : « des connexions récentes » n'est pas une date.
+
 C'est ce qui permettra plus tard de mesurer le rendement réel de la prospection LinkedIn.
 
 ### 6. Enchaîner les captures
@@ -152,4 +167,6 @@ Un compte rendu court : combien créés, combien complétés, combien écartés 
 - **Ne rien compléter au jugé** : un nom coupé, une société illisible, une ligne floue sont écartés et signalés.
 - **La base fait foi sur les coordonnées, le profil transmis fait foi sur l'identité.** Un email ou un téléphone saisi ne se remplace jamais par une lecture d'image. Un nom, un prénom, une fonction ou un nom d'entreprise lus sur un profil que l'utilisateur a transmis corrigent la base, sans lui redemander de les réécrire.
 - **Une invitation envoyée n'est pas une invitation acceptée.** Ne tracer un échange que sur une capture qui montre effectivement une acceptation.
+- **Un contact créé sans organisation est définitivement orphelin**, le lien ne s'écrivant qu'à la création. L'absence d'entreprise sur la capture ne vaut pas réponse : demander pour tout le lot en une question, et ne laisser le lien vide que sur un « je ne sais pas » de l'utilisateur.
+- **Une date vient de la capture ou du jour de l'import**, jamais d'une impression de fraîcheur. Et la raison donnée à l'utilisateur doit être la vraie : « la capture indique le 17 août », pas « les connexions semblent récentes ».
 - **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.

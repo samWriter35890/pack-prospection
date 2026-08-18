@@ -19,6 +19,7 @@ Prépare un email à une personne de la base, à partir de son historique réel.
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien, et seulement à la création.** `updateRecords` sur un champ de lien échoue toujours, quelle que soit la forme employée : c'est une limite du connecteur, pas une erreur de syntaxe. **Conséquence : créer dans l'ordre.** Un enregistrement créé sans son lien ne peut plus être rattaché depuis l'assistant.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Utiliser `fields` quand aucun nom lié n'est utile, l'omettre sinon.
+- **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 ---
 
@@ -116,7 +117,29 @@ createRecords  Échanges
 
 Le `Résumé` reprend l'essentiel du message, pas le mail intégral : le journal doit rester lisible.
 
-### 5. Poser la suite
+### 5. Refermer ce que le mail termine
+
+**Un mail parti referme presque toujours quelque chose.** C'est l'étape qu'on saute, et celle qui laisse derrière elle une tâche fantôme et une affaire figée à une étape périmée. L'utilisateur, lui, croit sa base à jour parce qu'il vient de dire « c'est envoyé ».
+
+Lire les tâches ouvertes de la personne, et de l'affaire quand il y en a une :
+
+```
+queryRecords  Tâches  where=(Contact,eq,Marie Le Goff)~and(Statut,neq,Fait)
+```
+
+**La tâche que le mail accomplit** se nomme et se propose, puis se referme sur le mot de l'utilisateur :
+
+```
+updateRecords  Tâches  id=1  {"Statut": "Fait"}
+```
+
+**L'étape de l'affaire** bouge avec le mail : un devis parti, une proposition envoyée passent l'affaire à `Proposition`. La proposer, jamais la poser seul. La bascule appartient à `creer-opportunite`, étape 4, qui pose du même geste la relance obligatoire et réclame la date de clôture prévue.
+
+> **Proposer, pas écrire d'office.** Deviner qu'un mail referme une tâche est une inférence, et une tâche fermée à tort disparaît de « Ma journée » sans laisser de trace. Ce qui n'est pas négociable, c'est de **regarder** et de **demander** : rendre la main sans avoir ouvert la liste des tâches est la faute, pas le fait de ne pas avoir écrit.
+
+**Ne pas retoucher l'échéance d'une tâche qu'on referme.** Elle dit quand la chose était attendue, pas quand elle a été faite.
+
+### 6. Poser la suite
 
 Un mail envoyé sans relance posée est un mail oublié. Deux écritures, presque toujours ensemble :
 

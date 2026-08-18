@@ -56,6 +56,8 @@ Sur Contacts, demander `fields` : `["Nom complet", "Prochaine relance", "Statut 
 
 > **`fields` supprime le bruit technique mais vide le libellé des liens.** Un champ de lien demandé dans `fields` revient sous la forme `{"id": 1, "fields": {}}` : on perd le nom. Sans `fields`, le lien revient avec son libellé, au prix des colonnes techniques (`CreatedAt`, `nc_..._id`). Choisir selon qu'un nom lié est utile ou non. La forme `Contact.Nom complet` dans `fields` est refusée.
 
+> **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient. Ici, une base injoignable veut dire qu'on n'ouvre pas la journée : le dire en une phrase et s'arrêter, plutôt que de proposer des routines sur un état qu'on n'a pas lu.
+
 ---
 
 ## Restituer
@@ -77,6 +79,7 @@ Deux à quatre routines, numérotées, classées par urgence, formulées comme d
 |---|---|---|
 | Traiter les relances du jour | Des contacts sont à relancer | `rediger-email`, ou `enregistrer-echange` après un appel |
 | Consigner un échange | L'utilisateur revient d'un appel ou d'un rendez-vous | `enregistrer-echange` |
+| Marquer une tâche comme faite | Une tâche du jour est accomplie, avec ou sans échange à raconter | `enregistrer-echange` |
 | Suivre les invitations LinkedIn | En début de semaine | `import-capture-linkedin` |
 | Préparer un rendez-vous | Un rendez-vous est proche | `rediger-email`, `tableau-de-bord` pour le contexte |
 | Rattraper les affaires dormantes | Rien à faire d'urgent aujourd'hui | `tableau-de-bord` |
@@ -91,7 +94,7 @@ Sur le choix de l'utilisateur, enchaîner **immédiatement** vers le skill. Ne p
 
 ## Règles
 
-- **Aucune écriture.** Pas de création de tâche, pas de mise à jour de relance, même si cela semble utile.
+- **Aucune écriture.** Pas de création de tâche, pas de mise à jour de relance, même si cela semble utile. **Une tâche à clore part vers `enregistrer-echange`, avec son `Id`** : c'est lui qui écrit `Statut: Fait`, y compris quand il n'y a aucun échange à consigner.
 - **Aucune procédure d'un autre skill recopiée ici.** Citer le nom, c'est tout.
 - Une demande précise dès la première phrase : ne pas dérouler l'accueil, aller directement au skill concerné.
 - Une page suffit. Si ce skill grossit, c'est qu'il empiète sur un autre.
