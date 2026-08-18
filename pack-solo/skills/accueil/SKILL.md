@@ -36,7 +36,7 @@ Ce que ce skill en fait, lui : s'adresser à l'utilisateur par son prénom et su
 
 ---
 
-## Lire l'état, en trois appels
+## Lire l'état, en quatre appels
 
 Résoudre d'abord les identifiants de table avec `getTablesList`, une seule fois par session. Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
 
@@ -45,10 +45,15 @@ Résoudre d'abord les identifiants de table avec `getTablesList`, une seule fois
 | Ce qui est à faire aujourd'hui ou en retard | Tâches | `(Statut,neq,Fait)~and(Échéance,lte,today)` | `Rang priorité` asc, puis `Échéance` asc |
 | Les personnes à relancer | Contacts | `(Prochaine relance,lte,today)` | `Prochaine relance` asc |
 | Les réponses reçues récemment | Échanges | `(Sens,eq,Entrant)~and(Date,isWithin,pastNumberOfDays,7)` | `Date` desc |
+| Les affaires ouvertes | Opportunités | `(Étape,in,Identifiée,Contactée,RDV,Proposition)` | `Clôture prévue` asc |
 
-`pageSize` 25 sur les deux premiers, 10 sur le troisième. **Trois appels pour l'état, pas quatre** : celui du contexte ci-dessus ne compte pas, il est payé une fois pour toute la session. Si les trois listes sont vides, le dire en une phrase et proposer de prospecter, ne pas aller chercher ailleurs.
+`pageSize` 25 sur les deux premiers, 10 sur les deux autres. **Quatre appels pour l'état, pas cinq** : celui du contexte ci-dessus ne compte pas, il est payé une fois pour toute la session.
 
-Sur Contacts, demander `fields` : `["Nom complet", "Prochaine relance", "Statut relation"]`. Sur Tâches et Échanges, **ne pas passer `fields`** : le nom du contact lié est nécessaire à la restitution, et il disparaît dès qu'on filtre les champs (voir la note ci-dessous).
+Sur Contacts, demander `fields` : `["Nom complet", "Prochaine relance", "Statut relation"]`. Sur Tâches, Échanges et Opportunités, **ne pas passer `fields`** : le nom du contact lié est nécessaire à la restitution, et il disparaît dès qu'on filtre les champs (voir la note ci-dessous).
+
+> **Les affaires ouvertes se lisent, elles ne se devinent pas.** Ce quatrième appel existe pour une raison précise : sans lui, le briefing parle de l'état d'une affaire à partir du résumé d'un échange, et il se trompe dès que l'affaire a bougé depuis. Le filtre est écrit par valeurs retenues, `in`, et non par exclusion : le connecteur n'a pas d'opérateur `nin`.
+
+> **Un état vide se dit vide.** Si les quatre listes ne rendent rien, le dire en une phrase, proposer de prospecter ou d'ouvrir le tableau de bord, et **s'arrêter là**. Le vide est une information, ce n'est pas un manque à combler : ne jamais aller chercher de la matière ailleurs pour remplir le briefing.
 
 > **Un tri s'écrit `sort=[{"field": "Rang priorité", "description": "asc"}, {"field": "Échéance", "description": "asc"}]`.** La clé qui porte le sens s'appelle bien `description`, c'est un défaut de nommage du connecteur. Une chaîne comme `"Date desc"` est refusée.
 
@@ -68,6 +73,12 @@ Trois lignes maximum, en langage de dirigeant, jamais en compteurs bruts.
 - Pas : « Contacts : 3. Tâches : 5. Échanges : 2. »
 
 Nommer les personnes et les affaires. Un solo reconnaît des noms, pas des totaux.
+
+> **Ce qui reste à faire vit dans `Tâches`, et nulle part ailleurs.** Un échange raconte le passé, il ne prescrit pas le présent. **Une intention lue dans le résumé ou l'objet d'un échange ne devient jamais une action proposée** : « un devis est attendu sous trois jours », écrit le 12, ne dit rien de ce qui a été fait depuis. Si un échange semble appeler une suite qu'aucune tâche ne porte, **poser la question en citant la date de l'échange**, jamais l'affirmer au présent. « L'échange du 12 août parlait d'un devis attendu, aucune tâche ne le porte : est-ce parti ? » et non « Thomas attend un devis ».
+
+> **Ne jamais présenter un chiffre calculé de tête. Tout nombre annoncé sort d'un appel.** Et **un compte et la liste qui l'accompagne sortent du même appel** : si on peut nommer les lignes, on les compte ; si on ne peut pas les nommer, on ne donne pas de nombre. Annoncer sept invitations puis en énumérer six est une erreur que l'utilisateur voit, et qui abîme tout le reste du briefing.
+
+> **Une date se dit telle qu'elle est en base.** Pas de « cette semaine », de « il y a quelques jours » ni de « depuis un mois » calculés au jugé : donner la date, ou vérifier le calcul contre la date lue. Le jour de la semaine se déduit de la date, il ne se suppose pas.
 
 ---
 

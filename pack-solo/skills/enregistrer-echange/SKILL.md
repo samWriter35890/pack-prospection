@@ -93,7 +93,7 @@ createRecords  Échanges
 
 ### 4. Refermer ce que l'échange termine
 
-Un échange n'ajoute pas seulement au journal : il **clôt** presque toujours quelque chose. C'est l'étape qu'on saute, et celle qui laisse derrière elle une tâche fantôme et une affaire figée à une étape périmée. L'utilisateur, lui, croit sa base à jour.
+Un échange n'ajoute pas seulement au journal : il **clôt** presque toujours quelque chose. C'est l'étape qu'on saute, et celle qui laisse derrière elle une tâche fantôme, une affaire figée à une étape périmée et un client rangé dans « à contacter ». L'utilisateur, lui, croit sa base à jour.
 
 Lire les tâches ouvertes de la personne, et de l'affaire quand il y en a une :
 
@@ -101,7 +101,7 @@ Lire les tâches ouvertes de la personne, et de l'affaire quand il y en a une :
 queryRecords  Tâches  where=(Contact,eq,Marie Le Goff)~and(Statut,neq,Fait)
 ```
 
-**Deux choses à regarder, dans cet ordre.**
+**Trois choses à regarder, dans cet ordre.**
 
 **La tâche que l'échange accomplit.** « J'ai envoyé le devis » referme la tâche « Envoyer le devis ». La nommer, la proposer, attendre le mot de l'utilisateur, puis :
 
@@ -112,6 +112,24 @@ updateRecords  Tâches  id=1  {"Statut": "Fait"}
 **L'étape de l'affaire.** Un devis parti, une proposition envoyée, un rendez-vous tenu la font bouger. La proposer, jamais la poser seul : une étape est une information commerciale, pas une conséquence mécanique. La bascule appartient à `creer-opportunite`, étape 4, qui pose du même geste la relance obligatoire d'une proposition et réclame la date de clôture prévue.
 
 > **Proposer, pas écrire d'office.** Deviner qu'un échange referme une tâche est une inférence, et une tâche fermée à tort disparaît de « Ma journée » sans laisser de trace. Ce qui n'est pas négociable, c'est de **regarder** et de **demander** : rendre la main sans avoir ouvert la liste des tâches est la faute, pas le fait de ne pas avoir écrit.
+
+**Le contact, qui bascule avec son affaire.** C'est la troisième table, et la plus oubliée : `Statut relation` n'est écrit qu'à la création du contact, et `Prochaine relance` n'est jamais effacée. Un contact laissé à `À contacter` derrière une affaire gagnée, avec une relance échue qui dort, **reviendra tout seul dans le briefing du matin** le jour de cette échéance, pour une affaire signée depuis longtemps.
+
+```
+updateRecords  Contacts  id=12  {"Statut relation": "Client", "Prochaine relance": null}
+```
+
+| Ce que l'échange vient de faire | `Statut relation` | `Prochaine relance` |
+|---|---|---|
+| L'affaire passe `Gagnée` | `Client` | effacée, ou reportée à la prochaine échéance **réelle** |
+| L'affaire passe `Perdue` | `Dormant` | effacée |
+| Premier échange sortant sur un contact `Nouveau` | `À contacter`, ou `En discussion` s'il a répondu | posée si une relance est évoquée |
+
+Valeurs admises : Nouveau · À contacter · En discussion · Client · Dormant · Perdu.
+
+> **Effacer une relance, c'est écrire `null` dessus.** Si le connecteur refuse la valeur nulle sur ce champ, **reporter la date plutôt que la laisser échue** : une relance repoussée à une échéance réelle est toujours préférable à une relance périmée, qui, elle, remontera dans le briefing.
+
+ Comme pour l'étape de l'affaire, **proposer plutôt que poser d'office** : la bascule se dit en une incise dans la phrase de confirmation, « je passe Thomas en Client et j'enlève sa relance du 25 », et l'utilisateur peut refuser.
 
 **Ne pas retoucher l'échéance d'une tâche qu'on referme.** Elle dit quand la chose était attendue, pas quand elle a été faite. Une tâche close en retard reste close en retard, et ce retard est une information.
 
@@ -159,6 +177,8 @@ updateRecords  Contacts  id=12  {"Prochaine relance": "2026-08-17"}
 
 C'est ce champ qui fait remonter la personne dans la vue « À relancer » et dans l'accueil du matin. Ne pas l'oublier quand l'utilisateur dit « je le rappelle la semaine prochaine ».
 
+**Et l'inverse est vrai aussi** : une relance qui n'a plus lieu d'être **s'efface**, elle ne se laisse pas expirer. C'est traité à l'étape 4 avec le reste du bouclage.
+
 ### 7. Confirmer
 
 Une phrase, pas un tableau. « C'est noté : appel du 10 août avec Marie Le Goff sur le devis, relance posée au 17, et une tâche pour envoyer le devis révisé mercredi. »
@@ -172,5 +192,6 @@ Une phrase, pas un tableau. « C'est noté : appel du 10 août avec Marie Le Gof
 - **Ne rien inventer** : ni montant, ni date, ni intention que l'utilisateur n'a pas énoncés. Si un champ manque, le laisser vide ou demander.
 - **Plusieurs échanges dans un même récit** (« j'ai appelé trois personnes ce matin ») : un enregistrement par personne, pas un fourre-tout. `createRecords` accepte plusieurs enregistrements en un appel.
 - **Une tâche se referme sur le mot de l'utilisateur, jamais sur une déduction.** Regarder les tâches ouvertes est obligatoire, les fermer ne l'est pas.
+- **Un bouclage qui ne ferme pas les trois tables n'est pas un bouclage.** `Tâches`, `Opportunités`, `Contacts`. Fermer les deux premières et oublier la troisième laisse une relance armée sur un client signé, et c'est le briefing du matin qui la fera exploser.
 - **Rendre la main sans avoir regardé les tâches ouvertes est une faute**, au même titre qu'un échange sans contact. Un échange qui accomplit une tâche et la laisse ouverte fabrique un retard qui n'existe pas.
 - **Ne jamais modifier ou supprimer un échange existant** pour « corriger » un contenu : en créer un nouveau, sauf demande explicite de correction. **Une seule exception, le rattachement à une affaire**, qui n'a pas d'autre voie : la procédure de suppression et recréation est décrite à l'étape 2, et elle recopie tous les champs.

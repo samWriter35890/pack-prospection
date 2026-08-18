@@ -149,6 +149,9 @@ Rappeler les plafonds, une fois, sans moraliser :
 Les formulations à reconnaître, toutes équivalentes : « c'est envoyé », « je l'ai déjà envoyée », « consigne tout cela », « note-le », « garde-le », « c'est parti ». **Un refus du texte proposé n'est pas un refus de consigner** : « non merci, je l'ai déjà envoyée » demande les deux à la fois, on abandonne le texte et on écrit la trace.
 
 1. **Le contact d'abord, s'il n'est pas en base.** Le créer selon `creer-contact`, sans en recopier la procédure : **l'organisation avant la personne**, le lien ne s'écrivant qu'à la création. Une personne à qui on vient d'écrire a sa place en base, c'est le lien effectif dont parle l'étape 1.
+
+   **« Selon `creer-contact` » veut dire ses règles comprises, pas seulement son ordre de création.** En particulier sa question de coordonnées, qui s'attache à la phrase de confirmation de l'étape 3 ci-dessous. Et sur ce chemin-ci, **`LinkedIn` n'est jamais vide** : on vient d'envoyer une invitation sur ce profil, l'URL est sous les yeux, elle se recopie sans qu'il y ait rien à demander. Un contact né d'une invitation LinkedIn sans son adresse LinkedIn est le seul cas de la base où le champ manquant était certain d'exister.
+
 2. **L'échange ensuite.**
 
 ```
@@ -169,7 +172,7 @@ createRecords  Échanges
 
 `Objet` dit ce qui est parti : `Invitation envoyée` pour une note d'invitation, `Premier message LinkedIn` pour un message direct. La `Date` est celle de l'envoi, le jour même sauf mention contraire de l'utilisateur.
 
-3. **Le dire en une phrase, en nommant la personne.** « C'est noté : Éric Komlan est en base, chez Untel, avec l'invitation envoyée aujourd'hui. » Une consignation muette ne vaut pas mieux qu'une consignation absente : l'utilisateur n'a aucun moyen de voir la différence.
+3. **Le dire en une phrase, en nommant la personne, et demander ce qui manque dans la même phrase.** « C'est noté : Éric Komlan est en base, chez Untel, avec son profil LinkedIn et l'invitation envoyée aujourd'hui. Si tu as son email ou son téléphone, je les ajoute. » Une consignation muette ne vaut pas mieux qu'une consignation absente : l'utilisateur n'a aucun moyen de voir la différence. Et une question reportée à plus tard est une question qui ne sera jamais posée.
 
 **Sur un lot parti d'un coup**, écrire les échanges en un seul appel et rendre compte d'un compte, pas de douze phrases. **Sur une partie du lot seulement**, ne consigner que ce qui est parti, et dire lesquels restent.
 
@@ -197,6 +200,8 @@ createRecords  Tâches
 ---
 
 ## Garde-fous
+
+- **Un nouveau chemin de création hérite des règles du chemin qu'il double, ou il ne le double pas.** L'étape 6 crée des contacts comme `creer-contact` en crée : elle doit donc les créer aussi bien, coordonnées comprises. Renvoyer à un autre skill dispense de recopier sa procédure, jamais d'appliquer ses règles.
 
 - **Le skill ne clique jamais et n'envoie jamais.** Il produit un texte, l'utilisateur agit.
 - **Rien de scrapé ne va en base.** L'enrichissement de profil sert au message, puis disparaît. **Une seule exception, la correction d'une identité fausse** : nom, prénom, fonction, nom de l'organisation. Ces champs sont ceux que la base porte de plein droit, et un profil transmis en est la meilleure source.

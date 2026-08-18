@@ -93,7 +93,7 @@ createRecords  Opportunités
 | `Étape` | Identifiée · Contactée · RDV · Proposition · Gagnée · Perdue |
 
 - `Nom` : ce qui sera vendu, pas le nom du client. « Site vitrine + base contacts », pas « Affaire Le Goff ». C'est ce qui s'affiche dans le Kanban Pipeline.
-- `Montant estimé` : un nombre nu, sans symbole ni espace. Le champ est en euros. **Ne jamais l'inventer** : si l'utilisateur n'a pas de chiffre en tête, laisser vide, il se complétera au devis.
+- `Montant estimé` : un nombre nu, sans symbole ni espace. Le champ est en euros. **Ne jamais l'inventer, et toujours le demander.** Ce sont deux règles, pas une : si l'utilisateur n'a donné aucun chiffre, créer l'affaire sans montant, puis **poser la question dans la même réponse**, avec un ordre de grandeur si le contexte en porte un. « Je n'ai pas de montant sur cette affaire. Un ordre de grandeur, même large, suffit à la faire compter dans le pipeline. » Un champ qu'on s'interdit d'inventer est un champ qu'on doit demander : s'interdire l'invention n'est pas une dispense de poser la question.
 - `Clôture prévue` : la date de décision espérée, pas la date de livraison. C'est elle qui fait apparaître l'affaire dans le bilan du mois.
 - **Aucun tiret cadratin.**
 
@@ -143,9 +143,13 @@ Sans délai annoncé, proposer une semaine plutôt que de laisser le champ vide 
 
 C'est la matière du bilan annuel, et la seule qui ne se reconstitue pas après coup. Sur une affaire perdue, poser aussi la question de la relance à distance : si l'utilisateur y croit encore, renseigner `Prochaine relance` sur le contact.
 
+**Une affaire close fait basculer son contact.** `Gagnée`, le contact passe `Client` ; `Perdue`, il passe `Dormant`. Et sa `Prochaine relance`, si elle porte encore une date liée à l'affaire qu'on vient de fermer, s'efface ou se reporte à une échéance réelle : laissée telle quelle, elle reviendra dans le briefing du matin réclamer une relance pour une affaire déjà tranchée. Le geste complet est décrit dans `enregistrer-echange`, étape 4, il ne se recopie pas ici.
+
 ### 6. Confirmer
 
 Une phrase. « L'affaire site vitrine passe en proposition à 2 950 €, relance posée au 25 août. »
+
+**Si `Montant estimé` est resté vide, la question part avec cette phrase**, accrochée à elle et non reportée à plus tard. « C'est ouvert : affaire formation deux jours pour Toto, étape Proposition, clôture prévue au 3 septembre. Il me manque le montant, même approximatif, sinon l'affaire ne comptera pas dans le pipeline. » C'est le même geste que la demande de coordonnées de `creer-contact`, et il marche pour la même raison : la question arrive quand l'utilisateur a encore le sujet en tête.
 
 ---
 
@@ -153,6 +157,7 @@ Une phrase. « L'affaire site vitrine passe en proposition à 2 950 €, relance
 
 - **Une affaire par sujet vendu, pas une par échange.** Le pipeline doit rester lisible en un coup d'oeil.
 - **Ne rien inventer** : ni montant, ni étape. Une affaire « Identifiée » sur laquelle rien n'est sûr vaut mieux qu'une affaire « Proposition » optimiste.
+- **Ne jamais inventer un montant, toujours demander un montant.** C'est lui qui fait le pipeline du tableau de bord, le chiffre signé du bilan et l'écart à l'objectif du point stratégique : une affaire sans montant est invisible dans les trois, et le pipeline annoncé au client est alors faux sans qu'il puisse le voir. Ne pas traiter le montant et la date de clôture de deux façons opposées : les deux champs sont facultatifs en base, aucun des deux ne s'abandonne en silence.
 - **Une affaire sans `Clôture prévue` n'apparaît dans aucun bilan, même gagnée.** Le champ se pose au plus tard au passage en `Proposition`. C'est la seule date qui se propose plutôt que de rester vide, et proposer une prévision datée n'est pas l'inventer : c'est la seule à porter « prévue » dans son nom.
 - **Ne pas reculer une étape en silence.** Si l'affaire régresse, le dire et demander confirmation : c'est une information commerciale, pas une correction de saisie.
 - **Le récit de l'échange ne va pas ici**, il va dans `enregistrer-echange`. `Notes` porte le contexte durable de l'affaire, pas son journal.

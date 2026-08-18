@@ -8,15 +8,15 @@ Spécification et raisonnement : [../plugin-pack-solo.md](../plugin-pack-solo.md
 
 | Skill ou fichier | État |
 |---|---|
-| `accueil` | Rédigé, **éprouvé et corrigé** |
-| `enregistrer-echange` | Rédigé, **éprouvé et corrigé**. Porte le bouclage depuis la v1.5.0 |
+| `accueil` | Rédigé, **éprouvé et corrigé trois fois**. Lit l'état en quatre appels depuis la v1.7.0 |
+| `enregistrer-echange` | Rédigé, **éprouvé et corrigé**. Porte le bouclage des trois tables depuis la v1.7.0 |
 | `creer-contact` | Rédigé, **éprouvé et corrigé** |
-| `creer-opportunite` | Rédigé, **éprouvé et corrigé** |
+| `creer-opportunite` | Rédigé, **éprouvé et corrigé** en v1.7.0 |
 | `rediger-email` | Rédigé, **éprouvé et corrigé** |
-| `accroche-linkedin` | Rédigé, **éprouvé et corrigé** le 18 août 2026 |
+| `accroche-linkedin` | Rédigé, **éprouvé et corrigé** deux fois, en v1.6.0 puis en v1.7.0 |
 | `import-capture-linkedin` | Rédigé, **éprouvé et corrigé** le 18 août 2026 |
 | `tableau-de-bord` | Rédigé, **éprouvé et corrigé** |
-| `point-strategique` | Rédigé le 17 août 2026, **éprouvé et corrigé** le 18 |
+| `point-strategique` | Rédigé le 17 août 2026, **éprouvé et corrigé** deux fois le 18 |
 | `.claude-plugin/plugin.json` | Écrit, installation à blanc jouée |
 | `.mcp.json` | Écrit, connecteur enregistré et substitution vérifiée |
 
@@ -25,6 +25,8 @@ Spécification et raisonnement : [../plugin-pack-solo.md](../plugin-pack-solo.md
 **Session de test réelle le 18 août 2026, et sept défauts corrigés en v1.5.0.** Sept compétences sur neuf se sont déclenchées juste, et le défaut de fond était ailleurs : **le plugin savait ouvrir du travail et ne savait pas le refermer.** Aucune des neuf ne savait écrire `Statut: Fait`, et aucune ne revenait sur l'étape d'une affaire après un échange. `enregistrer-echange` porte désormais le bouclage, y compris la clôture d'une tâche sans échange à consigner, et `accueil` comme `tableau-de-bord` y renvoient au lieu d'écrire eux-mêmes. Les six autres défauts et leur preuve sont dans [../recette-v1.4.0.md](../recette-v1.4.0.md). Le plus dangereux n'était pas une erreur : une affaire sans `Clôture prévue` ne compte dans aucun bilan, même gagnée, et produit un **zéro crédible**.
 
 **Deuxième session de test réelle le 18 août 2026, et cinq défauts corrigés en v1.6.0.** Les sept correctifs de la v1.5.0 tiennent, vérifiés en base. Le défaut de fond de cette passe est un **silence** : « consigne tout cela » n'a rien écrit et rien dit, parce que `accroche-linkedin` n'avait aucune étape de consignation et que le message portait deux ordres dont seul le second a été lu. Elle en a une désormais, étape 6, et `accueil` porte le garde-fou transverse des messages à plusieurs demandes. Les quatre autres : les coordonnées n'étaient demandées sur aucun chemin, un texte à envoyer sortait en citation sans bouton copier, une information donnée dans une réponse se recollait au mauvais nom, et le lien de réservation du client n'était lu par personne. Relevé et preuves dans [../recette-v1.5.0.md](../recette-v1.5.0.md).
+
+**Troisième session de test réelle le 18 août 2026, et cinq défauts corrigés en v1.7.0.** Les cinq correctifs de la v1.6.0 tiennent, dont le cas du silence rejoué à l'identique : « c'est envoyé » plus une seconde demande, dans le même message et avec une pièce jointe, et les deux ont été exécutées. Le défaut de fond de cette passe n'est plus un silence, c'est une **affirmation fausse** : le briefing d'ouverture a proposé d'envoyer un devis parti dix heures plus tôt, sur une affaire déjà gagnée, en tirant l'action du résumé d'un vieil échange faute d'avoir la moindre ligne à lire. `accueil` lit désormais les affaires ouvertes, ne prescrit plus rien depuis un échange, et porte les règles de comptage et de dates de `tableau-de-bord`. Les quatre autres : le bouclage oubliait la table `Contacts` et armait une fausse relance à date fixe, le montant d'une affaire n'était demandé sur aucun chemin alors que la date de clôture, elle, se proposait, les chiffres dits en prose n'étaient pas recomptés, et le contact créé par `accroche-linkedin` naissait sans l'adresse LinkedIn sur laquelle on venait de l'inviter. Relevé et preuves dans [../recette-v1.6.0.md](../recette-v1.6.0.md).
 
 **Neuvième compétence ajoutée le 17 août 2026**, `point-strategique`, avec le passage du schéma en v1.3 : deux tables de cadrage, `Contexte` et `Objectifs`. Quatre compétences lisent désormais le contexte du client une fois par session, et `point-strategique` compare les objectifs au réel **sans jamais combler un objectif absent**. Sa frontière avec `tableau-de-bord` a été écrite avant elle : [../eprouver-le-declenchement.md](../eprouver-le-declenchement.md).
 

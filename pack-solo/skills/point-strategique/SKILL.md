@@ -79,6 +79,8 @@ Quand l'utilisateur vise un objectif précis (« mes rendez-vous »), ne traiter
 - **Aujourd'hui est après `Échéance`** : la période est close. Mesurer sur la fenêtre complète et présenter un résultat définitif, pas un avancement.
 - **La fenêtre est en cours** : c'est le cas courant. Annoncer aussi **où l'on en est dans la fenêtre**, parce que c'est ce qui donne son sens au chiffre. 2 rendez-vous sur 4 le 17 du mois, c'est dans les clous ; le 30, non.
 
+> **La position dans la fenêtre est un chiffre comme un autre : elle se calcule sur `Début` et `Échéance` lus dans l'enregistrement, jamais sur une impression.** Un objectif ouvert hier est au jour 2, même s'il traîne dans la conversation depuis une semaine. Dire « on est à 5 jours » d'une fenêtre qui a commencé avant-hier fait douter de tout le reste du point, y compris des chiffres qui, eux, sortent d'un appel. Dans le doute, donner les deux bornes en clair et laisser l'utilisateur situer : « du 17 août au 31 décembre, on en est au deuxième jour ».
+
 ### 3. La mesure, et elle est imposée
 
 **Chaque valeur d'`Indicateur` a un comptage et un seul.** Ce tableau est un contrat, pas une suggestion. Ne jamais mesurer un indicateur autrement, ne jamais en mesurer un qui n'y figure pas.
