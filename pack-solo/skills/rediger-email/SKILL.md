@@ -25,18 +25,18 @@ Prépare un email à une personne de la base, à partir de son historique réel.
 
 ## Le contexte du client, lu une fois par session
 
-Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, et ce qu'il ne fait pas.
+Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, où l'on réserve un rendez-vous avec lui, et ce qu'il ne fait pas.
 
 ```
 queryRecords  Contexte  pageSize=1
               fields=["Entreprise", "Qui je suis", "Ce que je vends", "À qui je le vends",
                       "Ce qui me distingue", "Ce qui coince", "Comment je parle",
-                      "Signature", "Ce que je ne fais pas"]
+                      "Signature", "Lien de réservation", "Ce que je ne fais pas"]
 ```
 
 **Une fois par session, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base.
 
-**Lire les neuf champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et les autres skills s'en serviront ensuite sans repayer l'appel.
+**Lire les dix champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et les autres skills s'en serviront ensuite sans repayer l'appel.
 
 **Si la table est vide ou l'enregistrement absent :** le dire en une phrase, continuer quand même, et signaler que le texte sera générique tant que le contexte n'est pas rempli. **Ne jamais deviner** ce que l'utilisateur vend ni comment il signe. Un contexte inventé produit un texte qui sonne juste et qui est faux, ce qui est le pire des deux cas.
 
@@ -45,6 +45,8 @@ queryRecords  Contexte  pageSize=1
 **`Ce que je ne fais pas` est un interdit, pas une indication.** Rien de ce qui y figure ne se propose, ne se promet ni ne se sous-entend dans un texte destiné à un tiers.
 
 Ce que ce skill en fait, lui : **`Comment je parle` décide du tutoiement, du registre et des mots à éviter. `Signature` clôt le mail. `Ce que je vends` et `Ce que je ne fais pas` bornent ce qui peut être proposé.** C'est un email : il sort de chez l'utilisateur avec son nom dessus. Aucun autre skill n'a autant besoin de ces quatre champs.
+
+**Et `Lien de réservation` se recopie en clair, ou ne se remplace par rien.** C'est la règle de `Signature`, appliquée au rendez-vous. Dès que le mail propose de se voir ou de se parler, le lien y figure **tel quel**, en toutes lettres, jamais derrière un « je vous envoie mon lien » qui oblige à un mail de plus. S'il est vide, proposer l'échange **sans en inventer les modalités** : ni café, ni visio, ni créneau, ni lien fabriqué. Demander plutôt à l'utilisateur ce qu'il veut proposer, et lui signaler qu'un lien en base éviterait la question la prochaine fois.
 
 ---
 
@@ -90,6 +92,10 @@ Règles de forme :
 - Pas de formule creuse (« j'espère que vous allez bien », « je me permets de revenir vers vous »), pas de superlatif, pas de jargon.
 - **Signer en recopiant `Signature`**, tel quel. Ce champ existe précisément pour qu'aucune signature ne soit inventée. S'il est vide, s'arrêter avant la signature et demander à l'utilisateur comment il signe, plutôt que d'en fabriquer une.
 - **Ne rien proposer qui figure dans `Ce que je ne fais pas`.** C'est le garde-fou qui coûte le plus cher quand il manque : un email est irrattrapable une fois parti, et une prestation promise par erreur engage l'utilisateur devant son client.
+
+**Un texte, dans un bloc de code. Un lot, dans un artefact.** Le bloc de code garde le texte à l'écran et donne le bouton copier : sur un message unique, il n'y a rien à arbitrer. L'artefact reste le bon support à partir de plusieurs messages. **Jamais en citation** : elle n'offre pas le bouton, et l'utilisateur en est réduit à sélectionner à la souris un texte de dix lignes.
+
+L'objet se donne **au-dessus** du bloc, en clair : il se colle dans un autre champ que le corps, et un objet enfermé dans le même bloc part avec le message. Le bloc ne contient que le corps du mail, signature comprise.
 
 Puis **s'arrêter et demander**. Ne rien écrire en base tant que l'utilisateur n'a pas validé et envoyé.
 

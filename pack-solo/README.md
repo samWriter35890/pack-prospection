@@ -13,7 +13,7 @@ Spécification et raisonnement : [../plugin-pack-solo.md](../plugin-pack-solo.md
 | `creer-contact` | Rédigé, **éprouvé et corrigé** |
 | `creer-opportunite` | Rédigé, **éprouvé et corrigé** |
 | `rediger-email` | Rédigé, **éprouvé et corrigé** |
-| `accroche-linkedin` | Rédigé, corrigé, **non éprouvé** (demande une capture d'écran) |
+| `accroche-linkedin` | Rédigé, **éprouvé et corrigé** le 18 août 2026 |
 | `import-capture-linkedin` | Rédigé, **éprouvé et corrigé** le 18 août 2026 |
 | `tableau-de-bord` | Rédigé, **éprouvé et corrigé** |
 | `point-strategique` | Rédigé le 17 août 2026, **éprouvé et corrigé** le 18 |
@@ -24,13 +24,15 @@ Spécification et raisonnement : [../plugin-pack-solo.md](../plugin-pack-solo.md
 
 **Session de test réelle le 18 août 2026, et sept défauts corrigés en v1.5.0.** Sept compétences sur neuf se sont déclenchées juste, et le défaut de fond était ailleurs : **le plugin savait ouvrir du travail et ne savait pas le refermer.** Aucune des neuf ne savait écrire `Statut: Fait`, et aucune ne revenait sur l'étape d'une affaire après un échange. `enregistrer-echange` porte désormais le bouclage, y compris la clôture d'une tâche sans échange à consigner, et `accueil` comme `tableau-de-bord` y renvoient au lieu d'écrire eux-mêmes. Les six autres défauts et leur preuve sont dans [../recette-v1.4.0.md](../recette-v1.4.0.md). Le plus dangereux n'était pas une erreur : une affaire sans `Clôture prévue` ne compte dans aucun bilan, même gagnée, et produit un **zéro crédible**.
 
+**Deuxième session de test réelle le 18 août 2026, et cinq défauts corrigés en v1.6.0.** Les sept correctifs de la v1.5.0 tiennent, vérifiés en base. Le défaut de fond de cette passe est un **silence** : « consigne tout cela » n'a rien écrit et rien dit, parce que `accroche-linkedin` n'avait aucune étape de consignation et que le message portait deux ordres dont seul le second a été lu. Elle en a une désormais, étape 6, et `accueil` porte le garde-fou transverse des messages à plusieurs demandes. Les quatre autres : les coordonnées n'étaient demandées sur aucun chemin, un texte à envoyer sortait en citation sans bouton copier, une information donnée dans une réponse se recollait au mauvais nom, et le lien de réservation du client n'était lu par personne. Relevé et preuves dans [../recette-v1.5.0.md](../recette-v1.5.0.md).
+
 **Neuvième compétence ajoutée le 17 août 2026**, `point-strategique`, avec le passage du schéma en v1.3 : deux tables de cadrage, `Contexte` et `Objectifs`. Quatre compétences lisent désormais le contexte du client une fois par session, et `point-strategique` compare les objectifs au réel **sans jamais combler un objectif absent**. Sa frontière avec `tableau-de-bord` a été écrite avant elle : [../eprouver-le-declenchement.md](../eprouver-le-declenchement.md).
 
 Restent hors du plugin : le cheat-sheet client et le canal de mise à jour.
 
 Chacun est déclenchable directement ou depuis `accueil`. Les trois premiers forment la chaîne minimale : ouvrir sa journée, consigner un échange, faire entrer une personne inconnue.
 
-Chaque skill d'action rappelle en tête le même bloc « Conventions d'appel de la base ». **C'est volontaire** : un skill se charge seul, sans garantie qu'un autre soit en contexte. La duplication est le prix de l'autonomie. Si ce bloc change, il change dans les huit. **Le bloc « Le contexte du client, lu une fois par session » est le second bloc délibérément dupliqué**, depuis le 17 août 2026, dans quatre skills seulement : `accueil`, `accroche-linkedin`, `rediger-email` et `creer-opportunite`.
+Chaque skill d'action rappelle en tête le même bloc « Conventions d'appel de la base ». **C'est volontaire** : un skill se charge seul, sans garantie qu'un autre soit en contexte. La duplication est le prix de l'autonomie. Si ce bloc change, il change dans les huit. **Le bloc « Le contexte du client, lu une fois par session » est le second bloc délibérément dupliqué**, depuis le 17 août 2026, dans quatre skills seulement : `accueil`, `accroche-linkedin`, `rediger-email` et `creer-opportunite`. Il lit **dix champs** depuis la v1.6.0, `Lien de réservation` compris : deux skills seulement s'en servent, et les quatre le lisent, sans quoi le premier appelé priverait les suivants du champ pour toute la session.
 
 ## Règles qui gouvernent ce dossier
 

@@ -13,18 +13,18 @@ Ouvre la journée de travail commercial. Ce skill **lit** la base, restitue l'es
 
 ## Le contexte du client, lu une fois par session
 
-Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, et ce qu'il ne fait pas.
+Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, où l'on réserve un rendez-vous avec lui, et ce qu'il ne fait pas.
 
 ```
 queryRecords  Contexte  pageSize=1
               fields=["Entreprise", "Qui je suis", "Ce que je vends", "À qui je le vends",
                       "Ce qui me distingue", "Ce qui coince", "Comment je parle",
-                      "Signature", "Ce que je ne fais pas"]
+                      "Signature", "Lien de réservation", "Ce que je ne fais pas"]
 ```
 
 **Une fois par session, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base.
 
-**Lire les neuf champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et `rediger-email`, `accroche-linkedin` ou `creer-opportunite` s'en serviront ensuite sans repayer l'appel. Un skill qui n'en lirait que trois obligerait le suivant à tout relire.
+**Lire les dix champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et `rediger-email`, `accroche-linkedin` ou `creer-opportunite` s'en serviront ensuite sans repayer l'appel. Un skill qui n'en lirait que trois obligerait le suivant à tout relire.
 
 **Si la table est vide ou l'enregistrement absent :** le dire en une phrase, continuer quand même, et signaler que les textes produits dans cette session seront génériques tant que le contexte n'est pas rempli. **Ne jamais deviner** ce que l'utilisateur vend ni comment il signe. Un contexte inventé produit un texte qui sonne juste et qui est faux, ce qui est le pire des deux cas.
 
@@ -93,6 +93,8 @@ Sur le choix de l'utilisateur, enchaîner **immédiatement** vers le skill. Ne p
 ---
 
 ## Règles
+
+> **Plusieurs demandes dans un message se traitent toutes. Règle transverse, elle vaut pour toute la session, y compris après le passage de main.** Une pièce jointe ne remplace pas la phrase qui l'accompagne : une image capte l'attention, et la demande écrite juste à côté tombe. Reformuler les demandes lues, les exécuter dans l'ordre où elles sont écrites, et **si l'une est écartée, le dire**. Une demande exécutée en silence et une demande oubliée en silence se ressemblent trop : l'utilisateur ne peut distinguer ni l'une ni l'autre d'un travail fait.
 
 - **Aucune écriture.** Pas de création de tâche, pas de mise à jour de relance, même si cela semble utile. **Une tâche à clore part vers `enregistrer-echange`, avec son `Id`** : c'est lui qui écrit `Statut: Fait`, y compris quand il n'y a aucun échange à consigner.
 - **Aucune procédure d'un autre skill recopiée ici.** Citer le nom, c'est tout.

@@ -97,15 +97,21 @@ createRecords  Contacts
 - `Prochaine relance` : la poser si une échéance est évoquée. C'est ce champ qui fera remonter la personne dans « À relancer ».
 - `Notes` : le contexte durable sur la personne. Le récit d'un échange, lui, va dans `enregistrer-echange`.
 
-### 4. Confirmer, puis proposer de compléter ce qui manque
+### 4. Confirmer, et demander les coordonnées dans la même réponse
 
 Une phrase pour dire ce qui a été créé. Si le skill a été appelé depuis `enregistrer-echange`, revenir à l'échange à consigner sans faire répéter l'utilisateur.
 
-Puis, si `Email`, `Téléphone` ou `LinkedIn` sont vides, **proposer de les saisir tout de suite**, sans y obliger.
+**La confirmation porte la question.** Si `Email`, `Téléphone` ou `LinkedIn` sont vides, la demande part **avec** la phrase de confirmation, au même endroit que les points tranchés sans certitude, sous la même forme. Ce n'est pas une étape de plus, c'est une puce de plus :
+
+> C'est fait : la fiche de Charlotte Le Bedel est créée, rattachée à Perfhomme Rennes, avec l'échange du rendez-vous d'hier.
+> Deux points où j'ai tranché sans certitude : le canal de l'échange est en RDV, dis-moi si c'était plutôt un appel ; le statut de la relation est en En discussion.
+> Et il manque ses coordonnées : email, téléphone, profil LinkedIn ? Donne-moi ce que tu as, je complète la fiche.
+
+Une question posée dans la même réponse repart avec le reste et obtient une réponse. Une question repoussée à plus tard n'est jamais posée : la fiche reste vide, et personne ne s'en aperçoit avant le jour où il faut relancer.
 
 **Ne rien inventer ne veut pas dire ne rien demander.** Un email absent d'une capture d'écran n'est pas un email inconnu : l'utilisateur l'a souvent sous la main, il ne pense pas à le donner parce qu'on ne le lui a pas demandé. Le lien LinkedIn en est le cas le plus net, puisqu'il est dans la barre d'adresse de la page dont il vient de faire la capture. Demander coûte une question, un champ vide coûte une relance qui n'aura pas lieu.
 
-**Créer d'abord, demander ensuite.** Ne pas retenir la création derrière un formulaire : une fiche partielle vaut mieux qu'un formulaire abandonné, et sur un lot de profils, une question par personne est intenable. Sur un lot, poser la question une seule fois, à la fin, et pour ceux qui manquent.
+**Créer d'abord, demander ensuite. « Ensuite » veut dire dans la même réponse**, pas un jour plus tard. La règle interdit de retenir la création derrière un formulaire : une fiche partielle vaut mieux qu'un formulaire abandonné, et sur un lot de profils, une question par personne est intenable. Elle n'a jamais dispensé de la question, et c'est ainsi qu'elle a été lue jusqu'ici. Sur un lot, une seule question à la fin, pour tous ceux qui manquent.
 
 > **Ne jamais renvoyer l'utilisateur vers NoCoDB pour compléter une coordonnée.** Le pack se vend sur « vous n'ouvrez pas la base ». Lui dire d'aller saisir un email à la main lui rend précisément le travail qu'il nous paie pour éviter, et la fiche restera vide. Le complément se fait ici, par `updateRecords`, sur ce qu'il dicte. NoCoDB n'est le recours que pour ce que l'assistant **ne peut techniquement pas faire**, c'est-à-dire rattacher un lien après coup.
 
@@ -118,4 +124,4 @@ Puis, si `Email`, `Téléphone` ou `LinkedIn` sont vides, **proposer de les sais
 - **Ne rien inventer** : pas d'email déduit d'un modèle `prenom.nom@`, pas de fonction supposée, pas de ville devinée. Un champ vide se complète plus tard, un champ faux se propage.
 - **Plusieurs personnes d'un coup** : `createRecords` accepte plusieurs enregistrements en un appel, mais le dédoublonnage se fait pour chacune, et aussi entre elles.
 - **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.
-- **Un champ vide se propose, il ne s'abandonne pas.** Créer sans email est normal, conclure sans avoir demandé l'email ne l'est pas.
+- **Un champ vide se demande, il ne s'abandonne pas.** Créer sans email est normal, conclure sans avoir demandé l'email ne l'est pas. Et la demande vit dans la phrase de confirmation, jamais dans un « on verra plus tard ».

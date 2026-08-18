@@ -26,18 +26,18 @@ C'est une position produit assumée : aucun envoi automatisé d'invitations dans
 
 ## Le contexte du client, lu une fois par session
 
-Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, et ce qu'il ne fait pas.
+Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, où l'on réserve un rendez-vous avec lui, et ce qu'il ne fait pas.
 
 ```
 queryRecords  Contexte  pageSize=1
               fields=["Entreprise", "Qui je suis", "Ce que je vends", "À qui je le vends",
                       "Ce qui me distingue", "Ce qui coince", "Comment je parle",
-                      "Signature", "Ce que je ne fais pas"]
+                      "Signature", "Lien de réservation", "Ce que je ne fais pas"]
 ```
 
 **Une fois par session, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base. **Sur un lot de douze accroches, il se lit une fois pour les douze.**
 
-**Lire les neuf champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et les autres skills s'en serviront ensuite sans repayer l'appel.
+**Lire les dix champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et les autres skills s'en serviront ensuite sans repayer l'appel.
 
 **Si la table est vide ou l'enregistrement absent :** le dire en une phrase, continuer quand même, et signaler que le texte sera générique tant que le contexte n'est pas rempli. **Ne jamais deviner** ce que l'utilisateur vend ni comment il signe. Un contexte inventé produit un texte qui sonne juste et qui est faux, ce qui est le pire des deux cas.
 
@@ -46,6 +46,8 @@ queryRecords  Contexte  pageSize=1
 **`Ce que je ne fais pas` est un interdit, pas une indication.** Rien de ce qui y figure ne se propose, ne se promet ni ne se sous-entend dans un texte destiné à un tiers.
 
 Ce que ce skill en fait, lui : **`Qui je suis` fournit la ligne de présentation, et `Ce qui me distingue` la raison d'être crédible.** Sur 300 caractères, ce sont les deux seuls champs qui séparent une invitation qui se lit d'une invitation qui se supprime. **`À qui je le vends` sert à vérifier que la personne approchée est bien une cible** : si elle n'y ressemble pas, le dire à l'utilisateur avant d'écrire, il a peut-être une raison, et il vaut mieux qu'il la donne.
+
+**`Lien de réservation` se recopie en clair, ou ne se remplace par rien.** C'est la règle de `Signature`, appliquée au rendez-vous. Dès qu'un texte propose de se voir ou de se parler, le lien y figure **tel quel**, en toutes lettres, jamais derrière un « je vous envoie mon lien ». S'il est vide, proposer l'échange **sans en inventer les modalités** : ni café, ni visio, ni créneau, ni lien fabriqué. Un lieu de rencontre inventé est la partie du texte que l'utilisateur devra réécrire à la main, à chaque fois. Sur une note d'invitation, le champ ne sert pas : elle ne demande pas de rendez-vous, voir l'étape 4.
 
 ---
 
@@ -59,7 +61,7 @@ queryRecords  Contacts  where=(Nom complet,like,%le goff%)
 
 Ce qui sert à personnaliser : fonction, organisation, `Notes`, `Étiquettes`, et un éventuel échange antérieur.
 
-Si la personne n'est pas en base, ce n'est pas bloquant : l'accroche se prépare à partir de ce que l'utilisateur en dit ou de ce qu'il colle. **Ne pas créer la fiche à ce stade** : on ne remplit la base qu'avec les gens avec qui on a effectivement un lien. La fiche se crée à l'acceptation, par `import-capture-linkedin`.
+Si la personne n'est pas en base, ce n'est pas bloquant : l'accroche se prépare à partir de ce que l'utilisateur en dit ou de ce qu'il colle. **Ne pas créer la fiche à ce stade** : on ne remplit la base qu'avec les gens avec qui on a effectivement un lien. Elle se crée plus tard, à deux moments : **quand l'utilisateur dit que le message est parti**, étape 6 ci-dessous, et à l'acceptation, par `import-capture-linkedin`. Un message envoyé est un lien, une invitation préparée n'en est pas un.
 
 #### Si un profil est transmis et que la fiche existe déjà, corriger son identité
 
@@ -125,7 +127,9 @@ Règles communes :
 
 **Compter les caractères d'une note d'invitation, et raccourcir avant de proposer.** Le compte s'annonce avec le texte, sous la forme `287 caractères`. Un texte de 315 caractères a l'air d'aller : LinkedIn le tronque au milieu d'un mot, et cela se voit. Proposer un texte trop long puis annoncer qu'il est trop long ne sert à rien, l'utilisateur l'a déjà copié.
 
-**Un texte, dans la conversation. Un lot, dans un artefact.** Le bouton copier d'un artefact est commode, et c'est le bon support pour douze messages. Pour un seul texte court, il enterre le résultat derrière un clic que l'utilisateur doit d'abord apprendre à trouver, alors que le texte tenait à l'écran.
+**Un texte, dans un bloc de code. Un lot, dans un artefact.** Le bloc de code garde le texte à l'écran et donne le bouton copier : sur un message unique, il n'y a rien à arbitrer. L'artefact reste le bon support à partir de plusieurs messages. **Jamais en citation** : elle n'offre pas le bouton, et l'utilisateur en est réduit à sélectionner à la souris un texte qui embarque un retour à la ligne de trop.
+
+Le bloc ne contient **que le texte à envoyer** : pas de commentaire, pas de « Objet : », pas le compte de caractères, qui s'annonce dans la phrase au-dessus. Ce qui est dans le bloc est ce qui sera collé dans LinkedIn.
 
 Proposer **une version**, puis ajuster sur retour. Pas un catalogue de trois variantes.
 
@@ -138,9 +142,40 @@ Rappeler les plafonds, une fois, sans moraliser :
 - Environ **20 à 25 invitations par jour**, **100 par semaine glissante**. Au-delà, LinkedIn restreint le compte.
 - **La note personnalisée est contingentée** sur un compte gratuit, et LinkedIn a déjà changé ce quota plusieurs fois. Si l'utilisateur bute dessus, envoyer l'invitation nue et garder le texte pour le premier message après acceptation.
 
-### 6. Poser un rappel, si l'utilisateur le veut
+### 6. Consigner l'envoi, dès que le message est parti
 
-Par défaut, ce skill **n'écrit rien en base**, hors la correction d'identité vue à l'étape 1. Sur demande, une seule écriture utile de plus :
+**C'est une écriture, pas une proposition.** Dès que l'utilisateur dit que le message ou l'invitation est parti, que le texte vienne du pack ou qu'il l'ait écrit lui-même, la trace se pose, puis on le dit. Ne pas demander l'autorisation d'écrire ce qu'il vient de demander.
+
+Les formulations à reconnaître, toutes équivalentes : « c'est envoyé », « je l'ai déjà envoyée », « consigne tout cela », « note-le », « garde-le », « c'est parti ». **Un refus du texte proposé n'est pas un refus de consigner** : « non merci, je l'ai déjà envoyée » demande les deux à la fois, on abandonne le texte et on écrit la trace.
+
+1. **Le contact d'abord, s'il n'est pas en base.** Le créer selon `creer-contact`, sans en recopier la procédure : **l'organisation avant la personne**, le lien ne s'écrivant qu'à la création. Une personne à qui on vient d'écrire a sa place en base, c'est le lien effectif dont parle l'étape 1.
+2. **L'échange ensuite.**
+
+```
+createRecords  Échanges
+{
+  "Objet":   "Invitation envoyée",
+  "Date":    "2026-08-18",
+  "Canal":   "LinkedIn",
+  "Sens":    "Sortant",
+  "Contact": {"Id": 12}
+}
+```
+
+| Champ | Valeurs admises |
+|---|---|
+| `Canal` | Appel · Email · LinkedIn · RDV · SMS · Autre |
+| `Sens` | Entrant · Sortant |
+
+`Objet` dit ce qui est parti : `Invitation envoyée` pour une note d'invitation, `Premier message LinkedIn` pour un message direct. La `Date` est celle de l'envoi, le jour même sauf mention contraire de l'utilisateur.
+
+3. **Le dire en une phrase, en nommant la personne.** « C'est noté : Éric Komlan est en base, chez Untel, avec l'invitation envoyée aujourd'hui. » Une consignation muette ne vaut pas mieux qu'une consignation absente : l'utilisateur n'a aucun moyen de voir la différence.
+
+**Sur un lot parti d'un coup**, écrire les échanges en un seul appel et rendre compte d'un compte, pas de douze phrases. **Sur une partie du lot seulement**, ne consigner que ce qui est parti, et dire lesquels restent.
+
+### 7. Poser un rappel, si l'utilisateur le veut
+
+Hors la correction d'identité de l'étape 1 et la consignation de l'étape 6, ce skill **n'écrit rien en base**. Sur demande, une seule écriture utile de plus :
 
 ```
 createRecords  Tâches
@@ -157,7 +192,7 @@ createRecords  Tâches
 | `Priorité` | Haute · Moyenne · Basse |
 | `Statut` | À faire · En cours · Fait |
 
-Ne pas consigner d'Échange : rien n'a encore été envoyé. La trace se pose à l'acceptation, via `import-capture-linkedin`.
+**Ne pas consigner d'Échange sur des textes seulement préparés** : rien n'est parti, et une trace posée pour un message jamais envoyé pollue durablement le journal. Les deux traces légitimes ont chacune leur moment : l'envoi à l'étape 6, quand l'utilisateur le dit, l'acceptation via `import-capture-linkedin`.
 
 ---
 
@@ -169,3 +204,5 @@ Ne pas consigner d'Échange : rien n'a encore été envoyé. La trace se pose à
 - **Ne rien inventer sur la personne** : ni un post qu'elle n'a pas écrit, ni une connaissance commune supposée. Une accroche fausse se démasque en une réponse. Ce qui est **lisible sur le profil** n'est pas une invention : un changement de poste que le fil d'expérience date se cite sans réserve.
 - **Ne jamais choisir le format en silence** quand la personne est déjà en base. Note d'invitation et message de suite ne se plafonnent pas pareil, et le texte hybride qui sort d'un choix implicite ne convient à aucun des deux.
 - **300 caractères sur une note d'invitation**, comptés, pas estimés.
+- **Une demande de consignation ne reste jamais sans effet et sans réponse.** Si l'utilisateur dit qu'il a envoyé et qu'on n'écrit pas, il croit la chose faite et rien ne le détrompe. Une erreur bruyante se rattrape, un silence non. En cas d'empêchement, base injoignable ou personne impossible à identifier, le dire et nommer ce qui n'a pas été écrit.
+- **Un message qui porte plusieurs demandes se traite en entier.** Une pièce jointe ne remplace pas la phrase qui l'accompagne : traiter la phrase d'abord, l'image ensuite.

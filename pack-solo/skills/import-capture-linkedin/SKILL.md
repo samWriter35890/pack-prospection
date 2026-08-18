@@ -67,13 +67,30 @@ Avant toute écriture, montrer ce qui va se passer, en trois blocs :
 
 ### 4. Écrire
 
-#### Avant d'écrire : les contacts sans organisation, une question pour tout le lot
+#### Avant d'écrire : une seule question pour tout le lot, organisations et coordonnées
 
-Isoler les personnes dont la capture ne montre aucune entreprise, et **poser une seule question pour l'ensemble**, jamais une par personne :
+Isoler les personnes dont la capture ne montre aucune entreprise, et **poser une seule question pour l'ensemble**, jamais une par personne. **La même question porte les coordonnées**, dans la même phrase et le même tour :
 
-> Trois de ces personnes n'affichent pas d'entreprise : Thomas Louedoc, X, Y. Savez-vous où elles travaillent ? Sans organisation, je ne pourrai plus les rattacher ensuite.
+> Trois de ces personnes n'affichent pas d'entreprise : Thomas Louedoc, X, Y. Savez-vous où elles travaillent ? Sans organisation, je ne pourrai plus les rattacher ensuite. Et si vous avez leurs adresses de profil LinkedIn sous la main, donnez-les moi dans la foulée : la capture ne les montre pas, et sans elles la fiche ne sert qu'à compter.
+
+**Viser `LinkedIn` en premier.** C'est le seul des trois champs qu'un parcours LinkedIn peut plausiblement remplir : l'adresse est dans la barre du navigateur de la page dont l'utilisateur vient de faire la capture. `Email` et `Téléphone` se prennent s'ils viennent, ils ne se réclament pas ligne à ligne.
+
+**Quand aucune organisation ne manque, la question se pose quand même**, sur les seules coordonnées. C'est le seul moment du parcours où elles sont demandées : personne ne les redemandera plus tard, et une fiche sans coordonnée ne se relance pas.
 
 Puis écrire, avec ce que l'utilisateur a donné.
+
+#### Ce qu'on lit dans la réponse peut dépasser ce qu'on avait demandé
+
+La question portait sur les organisations, la réponse se lit **en entier**. Elle apporte souvent autre chose au passage : une fonction, une ville, une adresse de profil, une orthographe corrigée. **Tout prendre**, pas seulement ce qu'on était allé chercher.
+
+Puis **réafficher les seules lignes modifiées** du tableau de contrôle, avec les valeurs retenues, avant d'écrire :
+
+| | Personne | Organisation | Fonction |
+|---|---|---|---|
+| Retenu | Enzo Blanchard | SARL L.B.G.E | Associé gérant |
+| Retenu | Fabrice Gérard | CLR Location | Chargé d'affaires |
+
+**Le piège est l'attribution, pas la lecture.** Une fonction citée dans une phrase qui nomme deux personnes se recolle au mauvais nom quand elle figurait déjà à côté de l'autre dans le tableau. Deux lignes réaffichées coûtent une seconde de lecture, et c'est le seul endroit où l'erreur se voit avant d'être en base.
 
 > **Un contact créé sans organisation ne se rattache jamais depuis l'assistant.** Sur un import, l'absence d'organisation sur la capture n'est pas une réponse : c'est ce que LinkedIn affiche, pas ce que l'utilisateur sait. Demander pour tout le lot en une fois, accepter « je ne sais pas » et le dire, et ne laisser le lien vide que là. Un indépendant qui facture à son nom prend une organisation à son nom.
 
@@ -107,7 +124,7 @@ createRecords  Contacts
 | `Source` (Organisations) | Réseau · Salon · Recommandation · LinkedIn · Web · Import Datablist |
 
 - **`Nom complet` ne s'écrit pas** : c'est une formule.
-- **Pas d'email, pas de téléphone** : une capture LinkedIn n'en montre pas, et un email déduit d'un modèle `prenom.nom@` est un email faux.
+- **Pas d'email ni de téléphone lus sur l'image** : une capture LinkedIn n'en montre pas, et un email déduit d'un modèle `prenom.nom@` est un email faux. **Ce n'est pas une permission de ne pas les demander** : ils se demandent à l'utilisateur, avec la question de lot ci-dessus, et s'écrivent avec ce qu'il donne.
 - Sur une fiche existante, compléter avec `updateRecords`, **sans écraser une valeur renseignée** par une valeur lue sur l'image. Deux exceptions, à connaître : l'organisation, qui ne se rattache pas après coup, voir les conventions ci-dessus ; et l'**identité**, quand un profil a été transmis, voir juste en dessous.
 - **Les organisations d'abord, les personnes ensuite**, dans cet ordre : le lien vers l'organisation ne s'écrit qu'à la création de la fiche. Sur un lot, cela veut dire un premier appel `createRecords` sur Organisations, puis un second sur Contacts avec les `Id` obtenus.
 
@@ -168,5 +185,7 @@ Un compte rendu court : combien créés, combien complétés, combien écartés 
 - **La base fait foi sur les coordonnées, le profil transmis fait foi sur l'identité.** Un email ou un téléphone saisi ne se remplace jamais par une lecture d'image. Un nom, un prénom, une fonction ou un nom d'entreprise lus sur un profil que l'utilisateur a transmis corrigent la base, sans lui redemander de les réécrire.
 - **Une invitation envoyée n'est pas une invitation acceptée.** Ne tracer un échange que sur une capture qui montre effectivement une acceptation.
 - **Un contact créé sans organisation est définitivement orphelin**, le lien ne s'écrivant qu'à la création. L'absence d'entreprise sur la capture ne vaut pas réponse : demander pour tout le lot en une question, et ne laisser le lien vide que sur un « je ne sais pas » de l'utilisateur.
+- **Une fiche sans coordonnée est une fiche qu'on ne relancera pas.** L'absence d'email sur une capture n'est pas une absence d'email : c'est ce que LinkedIn affiche, pas ce que l'utilisateur sait. Une question pour le lot, jamais une par personne, jamais aucune.
+- **Une réponse de l'utilisateur se lit en entier, et se réaffiche avant d'écrire.** Ce qui dépasse la question posée s'écrit aussi, à condition de le montrer sur la ligne de la bonne personne.
 - **Une date vient de la capture ou du jour de l'import**, jamais d'une impression de fraîcheur. Et la raison donnée à l'utilisateur doit être la vraie : « la capture indique le 17 août », pas « les connexions semblent récentes ».
 - **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.
