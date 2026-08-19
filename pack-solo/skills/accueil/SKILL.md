@@ -44,6 +44,8 @@ Ce que ce skill en fait, lui : s'adresser à l'utilisateur par son prénom et su
 
 Résoudre d'abord les identifiants de table avec `getTablesList`, une seule fois par session. Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
 
+- **Le paramètre qui porte la table s'appelle `tableId`, jamais `table`.** Un appel juste sur tout le reste, filtre, `fields` et tri compris, échoue **en entier** sur `MCP error -32602: Input validation error`, avec `"path": ["tableId"], "message": "Required"`. Les appels écrits plus bas nomment la table en clair pour se lire, c'est la clé `tableId` qui la reçoit.
+
 | Ce qu'on cherche | Table | `where` | `sort` |
 |---|---|---|---|
 | Ce qui est à faire aujourd'hui ou en retard | Tâches | `(Statut,neq,Fait)~and(Échéance,lte,today)` | `Rang priorité` asc, puis `Échéance` asc |
@@ -117,4 +119,5 @@ Sur le choix de l'utilisateur, enchaîner **immédiatement** vers le skill. Ne p
 - **Aucune procédure d'un autre skill recopiée ici.** Citer le nom, c'est tout.
 - Une demande précise dès la première phrase : ne pas dérouler l'accueil, aller directement au skill concerné.
 - Une page suffit. Si ce skill grossit, c'est qu'il empiète sur un autre.
+- **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « vous ne m'avez pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un.
 - **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.

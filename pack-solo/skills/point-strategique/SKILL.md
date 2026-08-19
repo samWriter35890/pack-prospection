@@ -24,6 +24,7 @@ Répond à **« où j'en suis de ce que je m'étais fixé »**. Lit les objectif
 ## Conventions d'appel de la base
 
 - **Résoudre les identifiants de table avec `getTablesList`, une fois par session.** Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
+- **Le paramètre qui porte la table s'appelle `tableId`, jamais `table`.** Un appel juste sur tout le reste, filtre, `fields` et tri compris, échoue **en entier** sur `MCP error -32602: Input validation error`, avec `"path": ["tableId"], "message": "Required"`. Les appels écrits plus bas nomment la table en clair pour se lire, c'est la clé `tableId` qui la reçoit.
 - **Les noms de champs s'écrivent exactement comme dans la base, accents compris.** En lecture, un nom inconnu échoue bruyamment : `Column alias 'Echeance' not found.` **En écriture, il est ignoré en silence** : les autres champs passent, celui-là reste vide, et rien ne le signale.
 - **Relire l'enregistrement renvoyé après chaque écriture.** C'est le seul garde-fou contre une faute de frappe sur un nom de champ, et il ne coûte aucun appel : la réponse contient déjà l'enregistrement complet.
 - **Les dates s'écrivent `AAAA-MM-JJ`.**
@@ -144,7 +145,7 @@ Appelée sans aucun objectif en base, elle sera tentée de rendre service en ré
 La réponse juste tient en trois temps :
 
 1. **Le dire.** « Vous ne m'avez pas donné de cible, je ne peux donc pas vous dire si vous êtes dans les clous. »
-2. **Proposer d'en poser une**, en une question simple, et laisser l'utilisateur formuler la sienne.
+2. **Proposer d'en poser une, en une question et pas quatre.** Demander seulement ce qu'il veut suivre et à quel niveau : « qu'est-ce que vous voulez viser, et combien ? ». `Indicateur` et `Période` se déduisent de sa réponse et se font **confirmer** ensuite, la liste des sept indicateurs montrée seulement s'il faut trancher, comme le dit « Poser ou clore un objectif ». **Ne jamais réciter les quatre champs de la table**, « l'objectif, l'indicateur, la cible et la période » : c'est le formulaire NoCoDB déplacé dans la conversation, et c'est ce que le pack se vend à éviter.
 3. **Proposer l'autre porte** : « si vous voulez seulement voir votre activité du mois, je peux vous faire le point », et passer la main à `tableau-de-bord`.
 
 **Jamais combler.** Un objectif absent se dit, il ne se déduit pas de l'activité passée, il ne se remplace pas par une valeur ronde plausible.
@@ -236,4 +237,5 @@ updateRecords  Objectifs  id=1  {"Statut": "Atteint",
 - **Un seul comptage par indicateur**, celui du tableau. Deux mesures différentes du même objectif d'un mois sur l'autre valent moins que pas de mesure du tout.
 - **`Propositions en cours` se dit au présent.** C'est un stock : la base ne porte pas d'historique d'étape.
 - **Ne pas modifier `Objectif` ni `Cible`** sans que l'utilisateur les redonne lui-même. Corriger une cible pour qu'elle colle au réel vide la compétence de tout son sens.
+- **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « vous ne m'avez pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un.
 - **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.
