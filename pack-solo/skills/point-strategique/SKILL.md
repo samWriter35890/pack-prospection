@@ -172,6 +172,10 @@ Un objectif par bloc, court. Pour chacun :
 
 Puis, une fois pour l'ensemble : **une recommandation actionnable, une seule**, et le skill qui la porte. « Le plus rentable : relancer les deux propositions en attente. Je peux préparer les mails. »
 
+> **Une recommandation est une affirmation sur l'état de la base : elle obéit aux mêmes règles qu'un chiffre.** Toute affaire, tâche ou personne **nommée** dans la conclusion se relit **par un appel, dans le tour où la phrase s'écrit**. Jamais depuis un état lu plus tôt dans la conversation, même de quelques minutes : entre-temps, la même session a pu écrire. La conclusion est la seule partie de ce skill qui ne sorte d'aucun appel, donc la seule qui puisse mentir pendant que les chiffres, eux, restent justes.
+>
+> Le cas réel, le 19 août 2026 : « chiffrer et dater la clôture prévue des deux affaires en RDV » a été conseillé sur une affaire qui portait son montant et sa date depuis vingt-six minutes, écrits dans la même session. Un client qui suit le conseil refait un travail déjà fait, un client qui vérifie cesse de lire la conclusion.
+
 Nommer les affaires et les personnes quand elles expliquent un écart. Un solo reconnaît des noms, pas des totaux.
 
 **Ne pas dérouler les sept indicateurs** quand l'utilisateur n'a posé que deux objectifs. On mesure ce qui est visé, rien d'autre.
@@ -226,9 +230,10 @@ updateRecords  Objectifs  id=1  {"Statut": "Atteint",
 - **Ne jamais se rabattre sur un bilan d'activité** faute d'objectif. C'est le travail de `tableau-de-bord`, et lui donner le nom d'un point stratégique trompe l'utilisateur sur ce qu'il lit.
 - **Ne jamais chiffrer un objectif `Autre (non mesuré)`**, ni par un pourcentage, ni par un indicateur de substitution.
 - **Ne jamais présenter un chiffre calculé de tête.** Tout nombre annoncé sort d'un appel. En cas de doute, recouper par un `countRecords` plutôt qu'arrondir.
+- **Une recommandation se relit avant de s'écrire, exactement comme un chiffre se recompte.** Elle nomme des enregistrements, donc elle affirme quelque chose de leur état, donc elle se vérifie par un appel dans le tour même. Une règle qui ne parle que des chiffres laisse passer les conseils, et c'est le conseil que l'utilisateur suit.
 - **Une date se dit telle qu'elle est en base.** « hier », « la semaine dernière », « il y a un mois » sont des calculs, et ils tombent faux exactement comme un total : les poser contre la date du jour avant de les écrire, ou citer la date. Une date fausse dans une phrase juste passe inaperçue.
 - **L'indicateur mesure plus large que l'objectif ne le dit**, dès que celui-ci nomme un produit ou un segment. Le dire une fois, et ne jamais citer une affaire comme comptant dans une cible que l'indicateur ne sait pas filtrer.
 - **Un seul comptage par indicateur**, celui du tableau. Deux mesures différentes du même objectif d'un mois sur l'autre valent moins que pas de mesure du tout.
 - **`Propositions en cours` se dit au présent.** C'est un stock : la base ne porte pas d'historique d'étape.
 - **Ne pas modifier `Objectif` ni `Cible`** sans que l'utilisateur les redonne lui-même. Corriger une cible pour qu'elle colle au réel vide la compétence de tout son sens.
-- **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.
+- **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.

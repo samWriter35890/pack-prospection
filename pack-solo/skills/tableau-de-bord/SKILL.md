@@ -85,7 +85,9 @@ Gagnées et perdues, filtrées sur `Clôture prévue`. Toujours **les deux**, ja
 countRecords  Opportunités  where=(Étape,in,Identifiée,Contactée,RDV,Proposition)~and(Clôture prévue,blank)
 ```
 
-**Le dire quand il y en a**, en une ligne : « deux affaires en cours n'ont pas de date de clôture prévue, elles ne compteront dans aucun bilan tant qu'elle manque. » Ces affaires-là seraient signées demain sans rien apporter au chiffre du mois, et rien ne le signalerait : le bilan resterait juste au sens du calcul et faux au sens du réel. **Un trou de mesure se signale, il ne se comble pas tout seul** : la date se pose dans `creer-opportunite`, qui la réclame au passage en `Proposition`.
+**Ce comptage n'est pas facultatif, et il ne va pas dans les commentaires : il fait partie du bloc 2.** Dès qu'il est supérieur à zéro, il se dit, en une ligne : « deux affaires en cours n'ont pas de date de clôture prévue, elles ne compteront dans aucun bilan tant qu'elle manque. » Le 19 août 2026, l'appel a été fait, le résultat n'a pas été dit, et une affaire à 4 000 € est restée invisible. Ces affaires-là seraient signées demain sans rien apporter au chiffre du mois, et rien ne le signalerait : le bilan resterait juste au sens du calcul et faux au sens du réel. **Un trou de mesure se signale, il ne se comble pas tout seul** : la date se pose dans `creer-opportunite`, qui la propose à toutes les étapes.
+
+**Nommer les affaires concernées, jamais les compter seulement.** Le compte et la liste sortent du même appel : c'est `queryRecords` avec le même `where` s'il faut les nommer, pas `countRecords` suivi d'une liste écrite de mémoire. Signaler à tort une affaire datée comme non datée coûte la même confiance que d'en oublier une.
 
 ### 3. L'activité
 
@@ -140,6 +142,10 @@ Structure :
 4. **Ce qui coince**, nommément. « Les affaires Kervella et Autret n'ont plus bougé depuis un mois. »
 5. **Une recommandation actionnable**, une seule, et le skill qui la porte. « Le plus rentable aujourd'hui : relancer les deux propositions. Je peux préparer les mails. »
 
+> **Une recommandation est une affirmation sur l'état de la base : elle obéit aux mêmes règles qu'un chiffre.** Toute affaire, tâche ou personne **nommée** dans la conclusion se relit **par un appel, dans le tour où la phrase s'écrit**. Jamais depuis un état lu plus tôt dans la conversation, même de quelques minutes : entre-temps, la même session a pu écrire. La conclusion est la seule partie de ce skill qui ne sorte d'aucun appel, donc la seule qui puisse mentir pendant que les chiffres, eux, restent justes.
+>
+> Le cas réel, le 19 août 2026 : « chiffrer et dater la clôture prévue des deux affaires en RDV » a été conseillé sur une affaire qui portait son montant et sa date depuis vingt-six minutes, écrits dans la même session. Un client qui suit le conseil refait un travail déjà fait, un client qui vérifie cesse de lire la conclusion.
+
 Nommer les personnes et les affaires. Un solo reconnaît des noms, pas des totaux.
 
 Sur une base presque vide, le dire en une phrase et s'arrêter. Un bilan sur trois enregistrements n'a pas de sens, et gonfler la restitution ferait perdre confiance.
@@ -150,8 +156,10 @@ Sur une base presque vide, le dire en une phrase et s'arrêter. Un bilan sur tro
 
 - **Aucune écriture.** Même une tâche qui semblerait évidente : la proposer, laisser le skill concerné la créer. **Une tâche à clore part vers `enregistrer-echange`, avec son `Id`** : c'est lui qui écrit `Statut: Fait`, même sans échange à consigner. Rendre ce service ici serait violer la règle, et le rendre nulle part serait pire : il a sa porte, elle est nommée.
 - **Compter côté requête.** Jamais de rapatriement de table pour compter soi-même : c'est lent, coûteux, et faux dès que la base grossit.
+- **Un compteur de liens ne répond pas à une question qui porte un statut.** `Opportunités.Échanges` et `Opportunités.Tâches` comptent des liens, pas des échanges récents ni des tâches ouvertes. Le compteur convient au bloc 5, « jamais d'échange », parce que zéro lien veut bien dire zéro échange. Partout où un statut ou une date entre en jeu, c'est une requête filtrée.
 - **Ne pas recopier les vues NoCoDB.** « À relancer », « Ma journée », « Pipeline » et « Journal » restent consultables sur mobile sans IA. Ce skill apporte l'analyse, pas la liste.
 - **Ni graphique, ni prévisionnel pondéré, ni probabilité.** Ils relèvent de l'option payante « Dashboard avancé », et le socle ne porte pas de champ probabilité.
 - **Ne jamais présenter un chiffre calculé de tête.** Tout nombre annoncé sort d'un appel. En cas de doute sur un résultat, le recouper par un `countRecords` plutôt que l'arrondir.
+- **Une recommandation se relit avant de s'écrire, exactement comme un chiffre se recompte.** Elle nomme des enregistrements, donc elle affirme quelque chose de leur état, donc elle se vérifie par un appel dans le tour même. Une règle qui ne parle que des chiffres laisse passer les conseils, et c'est le conseil que l'utilisateur suit.
 - **Une date se dit telle qu'elle est en base.** « hier », « la semaine dernière », « il y a un mois » sont des calculs, et ils tombent faux exactement comme un total : les poser contre la date du jour avant de les écrire, ou citer la date. Une date fausse dans une phrase juste passe inaperçue.
-- **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.
+- **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.

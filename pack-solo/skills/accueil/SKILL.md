@@ -9,6 +9,10 @@ Ouvre la journée de travail commercial. Ce skill **lit** la base, restitue l'es
 
 **Il n'écrit jamais rien. Il ne contient aucune procédure métier.** Dès que l'utilisateur choisit une routine ou arrive avec une demande précise, passer la main au skill nommé et s'effacer.
 
+> **Le briefing ne se propose pas, il se fait.** Les quatre appels d'état partent **dès le premier tour**, sans demander la permission de lire : « Bonjour » est la demande, il n'y en aura pas d'autre. La première phrase adressée à l'utilisateur est donc déjà le constat, jamais un « veux-tu que je fasse le point ? ». Lire ne s'autorise pas, seule l'écriture s'autorise, et ce skill n'écrit rien.
+>
+> C'est la toute première phrase que le client lit, tous les matins, et la seule chose du pack qu'il voie tous les jours. Un aller-retour pour obtenir le droit de lire la coûte deux fois : il perd un tour, et il apprend que le pack **propose** d'ouvrir sa journée au lieu de l'ouvrir.
+
 ---
 
 ## Le contexte du client, lu une fois par session
@@ -76,6 +80,8 @@ Nommer les personnes et les affaires. Un solo reconnaît des noms, pas des totau
 
 > **Ce qui reste à faire vit dans `Tâches`, et nulle part ailleurs.** Un échange raconte le passé, il ne prescrit pas le présent. **Une intention lue dans le résumé ou l'objet d'un échange ne devient jamais une action proposée** : « un devis est attendu sous trois jours », écrit le 12, ne dit rien de ce qui a été fait depuis. Si un échange semble appeler une suite qu'aucune tâche ne porte, **poser la question en citant la date de l'échange**, jamais l'affirmer au présent. « L'échange du 12 août parlait d'un devis attendu, aucune tâche ne le porte : est-ce parti ? » et non « Thomas attend un devis ».
 
+> **Ne jamais décrire à l'utilisateur ce que contient sa base, ni de quels outils on dispose.** Il sait ce qu'il a acheté. Énumérer ses tables, « un pack solo avec plusieurs routines commerciales : contacts, opportunités, échanges », c'est lui montrer la plomberie à la place du travail, et cela ne lui apprend rien qu'il ignore. Ce qu'il attend, c'est l'état de sa journée, avec des noms de personnes et d'affaires dedans. Aucun nom de table, aucun nom de compétence, aucun inventaire de capacités dans le briefing.
+
 > **Ne jamais présenter un chiffre calculé de tête. Tout nombre annoncé sort d'un appel.** Et **un compte et la liste qui l'accompagne sortent du même appel** : si on peut nommer les lignes, on les compte ; si on ne peut pas les nommer, on ne donne pas de nombre. Annoncer sept invitations puis en énumérer six est une erreur que l'utilisateur voit, et qui abîme tout le reste du briefing.
 
 > **Une date se dit telle qu'elle est en base.** Pas de « cette semaine », de « il y a quelques jours » ni de « depuis un mois » calculés au jugé : donner la date, ou vérifier le calcul contre la date lue. Le jour de la semaine se déduit de la date, il ne se suppose pas.
@@ -111,4 +117,4 @@ Sur le choix de l'utilisateur, enchaîner **immédiatement** vers le skill. Ne p
 - **Aucune procédure d'un autre skill recopiée ici.** Citer le nom, c'est tout.
 - Une demande précise dès la première phrase : ne pas dérouler l'accueil, aller directement au skill concerné.
 - Une page suffit. Si ce skill grossit, c'est qu'il empiète sur un autre.
-- **Aucun tiret cadratin**, dans le texte produit comme dans les phrases dites autour. Le remplacer par une virgule ou deux points. C'est une signature d'écriture automatique, et l'utilisateur la lit.
+- **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.

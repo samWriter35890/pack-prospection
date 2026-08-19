@@ -94,8 +94,8 @@ createRecords  Opportunités
 
 - `Nom` : ce qui sera vendu, pas le nom du client. « Site vitrine + base contacts », pas « Affaire Le Goff ». C'est ce qui s'affiche dans le Kanban Pipeline.
 - `Montant estimé` : un nombre nu, sans symbole ni espace. Le champ est en euros. **Ne jamais l'inventer, et toujours le demander.** Ce sont deux règles, pas une : si l'utilisateur n'a donné aucun chiffre, créer l'affaire sans montant, puis **poser la question dans la même réponse**, avec un ordre de grandeur si le contexte en porte un. « Je n'ai pas de montant sur cette affaire. Un ordre de grandeur, même large, suffit à la faire compter dans le pipeline. » Un champ qu'on s'interdit d'inventer est un champ qu'on doit demander : s'interdire l'invention n'est pas une dispense de poser la question.
-- `Clôture prévue` : la date de décision espérée, pas la date de livraison. C'est elle qui fait apparaître l'affaire dans le bilan du mois.
-- **Aucun tiret cadratin.**
+- `Clôture prévue` : la date de décision espérée, pas la date de livraison. C'est elle qui fait apparaître l'affaire dans le bilan du mois. **Elle se propose dès la création, à toutes les étapes, `Identifiée` comprise.** L'affaire 5 du 19 août 2026 est née en `Identifiée` sans date, à 4 000 € : signée demain, elle ne compterait dans aucun bilan. Une date lointaine et fausse se corrige au premier échange, une date absente ne se corrige jamais toute seule. Sans indication de l'utilisateur, en proposer une et le dire : « je mets fin septembre en prévision, on ajustera ».
+- **Aucun tiret cadratin**, voir les garde-fous : l'interdiction vaut pour `Notes` comme pour la phrase de confirmation.
 
 > **`Contact` et `Organisation` se posent ici ou jamais.** Les deux liens ne s'écrivent qu'à la création, voir les conventions ci-dessus. Une affaire créée sans contact restera sans interlocuteur, et le filtre par entreprise du bilan l'ignorera.
 
@@ -107,7 +107,7 @@ updateRecords  Opportunités  id=4  {"Étape": "Proposition", "Montant estimé":
 
 Un devis chiffré est l'occasion de corriger le montant estimé. Le faire dans le même appel.
 
-**Un passage à `Proposition` réclame `Clôture prévue` si le champ est vide.** C'est le moment où une date de décision existe : on vient d'envoyer un chiffre, on sait quand on espère la réponse. La demander en une phrase, « quand espérez-vous une réponse ? », et l'écrire dans le même appel :
+**Tout changement d'étape réclame `Clôture prévue` si le champ est vide**, et le passage à `Proposition` est le dernier moment où l'oubli est encore rattrapable. C'est là qu'une date de décision est la plus sûre : on vient d'envoyer un chiffre, on sait quand on espère la réponse. La demander en une phrase, « quand espérez-vous une réponse ? », et l'écrire dans le même appel :
 
 ```
 updateRecords  Opportunités  id=4  {"Étape": "Proposition", "Montant estimé": 2950,
@@ -143,11 +143,34 @@ Sans délai annoncé, proposer une semaine plutôt que de laisser le champ vide 
 
 C'est la matière du bilan annuel, et la seule qui ne se reconstitue pas après coup. Sur une affaire perdue, poser aussi la question de la relance à distance : si l'utilisateur y croit encore, renseigner `Prochaine relance` sur le contact.
 
+**`Clôture prévue` prend la date du jour de la décision**, dans le même appel que l'étape :
+
+```
+updateRecords  Opportunités  id=2  {"Étape": "Perdue", "Clôture prévue": "2026-08-19",
+                                    "Notes": "<ce qui s'y trouvait déjà, plus la raison>"}
+```
+
+> **La prévision devient un fait le jour où elle se réalise ou s'annule.** Le champ porte « prévue » dans son nom et il sert de date **réelle** aux deux compétences de bilan, qui comptent le conclu dessus. Une affaire perdue le 19 août et laissée au 3 septembre ne comptera pas dans le bilan d'août et comptera dans celui de septembre : le taux de transformation est faux **dans les deux mois**, et les deux restent crédibles. C'est le genre d'erreur qui ne se voit jamais.
+>
+> Sauf si l'utilisateur donne une autre date, celle où la décision a réellement été prise : « il a signé vendredi » vaut le vendredi, pas aujourd'hui. Et le dire en une demi-phrase dans la confirmation, pour qu'il puisse corriger : « l'affaire est refermée au 19 août ».
+
+**Regarder ce qui reste ouvert derrière l'affaire, par un appel filtré :**
+
+```
+queryRecords  Tâches  where=(Opportunité,eq,<nom de l'affaire>)~and(Statut,neq,Fait)
+```
+
+> **Le compteur de liens `Tâches` ne compte que des liens, jamais des tâches ouvertes.** Il vaut 2 sur une affaire qui porte une tâche faite et une tâche à faire, et proposer « de refermer les deux tâches ouvertes » en nommant celle qui est déjà faite est ce qui s'est produit le 19 août 2026. **Un compteur de liens ne répond pas à une question qui porte un statut** : ce qui reste à faire se lit par une requête filtrée, et le compte et la liste qui l'accompagne sortent du même appel. Si on ne peut pas nommer les lignes, on n'annonce pas de nombre.
+
+**Et proposer de consigner l'échange qui a provoqué la clôture, dans le même tour.** Quand l'information qui fait bouger l'affaire vient visiblement d'une conversation, « Charlotte m'a dit qu'ils avaient trouvé quelqu'un d'autre », la raison va bien en `Notes`, mais **la date et le canal de cette conversation ne sont écrits nulle part**. Dans trois mois, la base dira que l'affaire a été perdue sans dire quand ni comment on l'a appris, et le compteur d'échanges du bilan sous-comptera l'activité réelle. La question part accrochée à la confirmation, jamais reportée : « je note aussi l'appel de Charlotte au journal ? ». C'est `enregistrer-echange` qui écrit, le récit ne va pas en `Notes`.
+
 **Une affaire close fait basculer son contact.** `Gagnée`, le contact passe `Client` ; `Perdue`, il passe `Dormant`. Et sa `Prochaine relance`, si elle porte encore une date liée à l'affaire qu'on vient de fermer, s'efface ou se reporte à une échéance réelle : laissée telle quelle, elle reviendra dans le briefing du matin réclamer une relance pour une affaire déjà tranchée. Le geste complet est décrit dans `enregistrer-echange`, étape 4, il ne se recopie pas ici.
 
 ### 6. Confirmer
 
 Une phrase. « L'affaire site vitrine passe en proposition à 2 950 €, relance posée au 25 août. »
+
+**Sur une clôture, la phrase dit la date retenue et ce qui a basculé avec.** « C'est refermé : l'affaire Perfhomme passe en Perdue au 19 août, Charlotte passe en Dormant et sa relance est enlevée. Une tâche reste ouverte, je la referme aussi ? » Chaque élément de cette phrase est corrigeable par l'utilisateur, et c'est à cela qu'elle sert.
 
 **Si `Montant estimé` est resté vide, la question part avec cette phrase**, accrochée à elle et non reportée à plus tard. « C'est ouvert : affaire formation deux jours pour Toto, étape Proposition, clôture prévue au 3 septembre. Il me manque le montant, même approximatif, sinon l'affaire ne comptera pas dans le pipeline. » C'est le même geste que la demande de coordonnées de `creer-contact`, et il marche pour la même raison : la question arrive quand l'utilisateur a encore le sujet en tête.
 
@@ -158,6 +181,9 @@ Une phrase. « L'affaire site vitrine passe en proposition à 2 950 €, relance
 - **Une affaire par sujet vendu, pas une par échange.** Le pipeline doit rester lisible en un coup d'oeil.
 - **Ne rien inventer** : ni montant, ni étape. Une affaire « Identifiée » sur laquelle rien n'est sûr vaut mieux qu'une affaire « Proposition » optimiste.
 - **Ne jamais inventer un montant, toujours demander un montant.** C'est lui qui fait le pipeline du tableau de bord, le chiffre signé du bilan et l'écart à l'objectif du point stratégique : une affaire sans montant est invisible dans les trois, et le pipeline annoncé au client est alors faux sans qu'il puisse le voir. Ne pas traiter le montant et la date de clôture de deux façons opposées : les deux champs sont facultatifs en base, aucun des deux ne s'abandonne en silence.
-- **Une affaire sans `Clôture prévue` n'apparaît dans aucun bilan, même gagnée.** Le champ se pose au plus tard au passage en `Proposition`. C'est la seule date qui se propose plutôt que de rester vide, et proposer une prévision datée n'est pas l'inventer : c'est la seule à porter « prévue » dans son nom.
+- **Une affaire sans `Clôture prévue` n'apparaît dans aucun bilan, même gagnée.** Le champ **se propose dès la création, à toutes les étapes**, et au plus tard au passage en `Proposition`. C'est la seule date qui se propose plutôt que de rester vide, et proposer une prévision datée n'est pas l'inventer : c'est la seule à porter « prévue » dans son nom. Réserver la proposition à `Proposition` laisse passer tout ce qui s'ouvre en `Identifiée`, c'est-à-dire l'essentiel.
 - **Ne pas reculer une étape en silence.** Si l'affaire régresse, le dire et demander confirmation : c'est une information commerciale, pas une correction de saisie.
-- **Le récit de l'échange ne va pas ici**, il va dans `enregistrer-echange`. `Notes` porte le contexte durable de l'affaire, pas son journal.
+- **Une affaire close porte la date de sa clôture, pas celle qu'on espérait.** `Clôture prévue` est le champ sur lequel les deux bilans comptent le conclu : le jour où l'affaire est tranchée, la prévision devient un fait et se met à jour dans le même appel que l'étape.
+- **Un compteur de liens ne répond pas à une question qui porte un statut.** `Tâches` et `Échanges` comptent des liens, pas des tâches ouvertes ni des échanges récents. Tout ce qui porte un statut se lit par un appel filtré, et un nombre ne s'annonce qu'avec la liste qui le justifie.
+- **Le récit de l'échange ne va pas ici**, il va dans `enregistrer-echange`. `Notes` porte le contexte durable de l'affaire, pas son journal. **Mais passer la main est un geste, pas une dispense** : quand l'information vient d'une conversation, proposer de la consigner dans le même tour. Un échange tombé dans l'intervalle entre deux compétences est un échange perdu.
+- **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.

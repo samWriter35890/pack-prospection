@@ -4,19 +4,19 @@ Unité de duplication du socle Solo : le client installe **un plugin**, pas une 
 
 Spécification et raisonnement : [../plugin-pack-solo.md](../plugin-pack-solo.md). Schéma de la base : [../modele-base-nocodb.md](../modele-base-nocodb.md).
 
-## État au 18 août 2026
+## État au 19 août 2026
 
 | Skill ou fichier | État |
 |---|---|
-| `accueil` | Rédigé, **éprouvé et corrigé trois fois**. Lit l'état en quatre appels depuis la v1.7.0 |
-| `enregistrer-echange` | Rédigé, **éprouvé et corrigé**. Porte le bouclage des trois tables depuis la v1.7.0 |
+| `accueil` | Rédigé, **éprouvé et corrigé quatre fois**. Le briefing part sans demander la permission de lire depuis la v1.8.0 |
+| `enregistrer-echange` | Rédigé, **éprouvé et corrigé**. Porte le bouclage des trois tables, et l'avancement du contact sur le chemin normal depuis la v1.8.0 |
 | `creer-contact` | Rédigé, **éprouvé et corrigé** |
-| `creer-opportunite` | Rédigé, **éprouvé et corrigé** en v1.7.0 |
+| `creer-opportunite` | Rédigé, **éprouvé et corrigé** en v1.7.0 puis en v1.8.0, qui lui a coûté quatre défauts sur neuf |
 | `rediger-email` | Rédigé, **éprouvé et corrigé** |
-| `accroche-linkedin` | Rédigé, **éprouvé et corrigé** deux fois, en v1.6.0 puis en v1.7.0 |
+| `accroche-linkedin` | Rédigé, **éprouvé et corrigé** trois fois, en v1.6.0, v1.7.0 puis v1.8.0 |
 | `import-capture-linkedin` | Rédigé, **éprouvé et corrigé** le 18 août 2026 |
 | `tableau-de-bord` | Rédigé, **éprouvé et corrigé** |
-| `point-strategique` | Rédigé le 17 août 2026, **éprouvé et corrigé** deux fois le 18 |
+| `point-strategique` | Rédigé le 17 août 2026, **éprouvé et corrigé** deux fois le 18, puis en v1.8.0 |
 | `.claude-plugin/plugin.json` | Écrit, installation à blanc jouée |
 | `.mcp.json` | Écrit, connecteur enregistré et substitution vérifiée |
 
@@ -28,7 +28,11 @@ Spécification et raisonnement : [../plugin-pack-solo.md](../plugin-pack-solo.md
 
 **Troisième session de test réelle le 18 août 2026, et cinq défauts corrigés en v1.7.0.** Les cinq correctifs de la v1.6.0 tiennent, dont le cas du silence rejoué à l'identique : « c'est envoyé » plus une seconde demande, dans le même message et avec une pièce jointe, et les deux ont été exécutées. Le défaut de fond de cette passe n'est plus un silence, c'est une **affirmation fausse** : le briefing d'ouverture a proposé d'envoyer un devis parti dix heures plus tôt, sur une affaire déjà gagnée, en tirant l'action du résumé d'un vieil échange faute d'avoir la moindre ligne à lire. `accueil` lit désormais les affaires ouvertes, ne prescrit plus rien depuis un échange, et porte les règles de comptage et de dates de `tableau-de-bord`. Les quatre autres : le bouclage oubliait la table `Contacts` et armait une fausse relance à date fixe, le montant d'une affaire n'était demandé sur aucun chemin alors que la date de clôture, elle, se proposait, les chiffres dits en prose n'étaient pas recomptés, et le contact créé par `accroche-linkedin` naissait sans l'adresse LinkedIn sur laquelle on venait de l'inviter. Relevé et preuves dans [../recette-v1.6.0.md](../recette-v1.6.0.md).
 
+**Quatrième session de test réelle le 19 août 2026, et neuf défauts corrigés en v1.8.0.** Les cinq correctifs de la v1.7.0 tiennent, et les **trois cas qui traînaient depuis deux versions sont enfin joués** : le lien de réservation sort en clair dans un email, le briefing sur un état vide se tait au lieu de meubler, et le bouclage des trois tables est prouvé sur ses deux branches, `Gagnée` et `Perdue`, la seconde déclenchée par une simple phrase et non par un ordre. Le défaut de fond est de nouveau une **affirmation fausse**, et c'est le même que celui de la v1.7.0 à ceci près qu'il a changé de compétence : réparé dans `accueil`, il est ressorti dans `point-strategique`, qui a conseillé un travail fait vingt-six minutes plus tôt dans la même session. D'où la leçon qui gouverne cette version : **une règle écrite dans une compétence ne protège que cette compétence**, et **une recommandation est une affirmation sur l'état de la base, qui obéit aux mêmes règles qu'un chiffre**. Les huit autres : le briefing demandait la permission de lire et décrivait la plomberie de la base, `accroche-linkedin` créait encore un contact orphelin malgré la règle écrite en v1.6.0, d'où un **arrêt** à la place d'une consigne, une affaire close gardait sa date de clôture prévisionnelle et faussait deux bilans mensuels, un compteur de liens annonçait deux tâches ouvertes là où une seule l'était, `Statut relation` ne basculait pas sur un premier échange sortant faute d'affaire pour déclencher le bouclage, une affaire naissait sans date de clôture sans qu'aucun bilan ne le dise, le tiret cadratin ressortait dans une phrase de conversation, et la clôture ne consignait pas l'échange qui l'avait provoquée. Relevé et preuves dans [../recette-v1.7.0.md](../recette-v1.7.0.md).
+
 **Neuvième compétence ajoutée le 17 août 2026**, `point-strategique`, avec le passage du schéma en v1.3 : deux tables de cadrage, `Contexte` et `Objectifs`. Quatre compétences lisent désormais le contexte du client une fois par session, et `point-strategique` compare les objectifs au réel **sans jamais combler un objectif absent**. Sa frontière avec `tableau-de-bord` a été écrite avant elle : [../eprouver-le-declenchement.md](../eprouver-le-declenchement.md).
+
+**Une question ouverte est fermée par cette passe :** `updateRecords` **accepte une valeur nulle** sur `Contacts.Prochaine relance`, vérifié le 19 août 2026 aux deux bouts du cycle. La consigne de repli qui prévoyait un refus du connecteur est sortie de `enregistrer-echange`.
 
 Restent hors du plugin : le cheat-sheet client et le canal de mise à jour.
 

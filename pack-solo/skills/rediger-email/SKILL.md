@@ -88,7 +88,7 @@ Règles de forme :
 - **Court.** Cinq à dix lignes. Un dirigeant lit sur mobile.
 - **Une seule demande**, formulée clairement, en fin de message.
 - **Le ton de `Comment je parle`**, pas un ton générique. Ce champ dit le tutoiement ou le vouvoiement, le registre, et les mots à ne pas employer. S'il est vide, vouvoyer par défaut et le signaler.
-- **Aucun tiret cadratin.** Utiliser la virgule ou les deux points.
+- **Aucun tiret cadratin**, voir les garde-fous : l'interdiction vaut pour le corps du mail comme pour les phrases dites autour.
 - Pas de formule creuse (« j'espère que vous allez bien », « je me permets de revenir vers vous »), pas de superlatif, pas de jargon.
 - **Signer en recopiant `Signature`**, tel quel. Ce champ existe précisément pour qu'aucune signature ne soit inventée. S'il est vide, s'arrêter avant la signature et demander à l'utilisateur comment il signe, plutôt que d'en fabriquer une.
 - **Ne rien proposer qui figure dans `Ce que je ne fais pas`.** C'est le garde-fou qui coûte le plus cher quand il manque : un email est irrattrapable une fois parti, et une prestation promise par erreur engage l'utilisateur devant son client.
@@ -122,6 +122,14 @@ createRecords  Échanges
 | `Sens` | Entrant · Sortant |
 
 Le `Résumé` reprend l'essentiel du message, pas le mail intégral : le journal doit rester lisible.
+
+**Puis faire avancer `Statut relation`, dans le même geste.** Un premier message sortant sur un contact `Nouveau` le passe à `À contacter`, une réponse reçue le passe à `En discussion`. C'est une écriture du **chemin normal** : elle ne dépend d'aucune affaire, et elle ne se demande pas.
+
+```
+updateRecords  Contacts  id=15  {"Statut relation": "À contacter"}
+```
+
+**Faire avancer, jamais reculer** : un contact déjà `En discussion`, `Client` ou `Dormant` n'y redescend pas. La règle complète est dans `enregistrer-echange`, étape 3, elle ne se recopie pas plus loin que ceci. Sans elle, un contact à qui on a écrit hier reste rangé avec ceux qu'on n'a jamais approchés, et le champ ne veut plus rien dire.
 
 ### 5. Refermer ce que le mail termine
 
@@ -179,3 +187,4 @@ Une à deux semaines par défaut, selon l'étape de l'affaire. Le champ `Prochai
 - **Ne rien inventer** : pas de rendez-vous, pas de chiffre, pas d'engagement qui ne figure ni dans le récit ni dans la base.
 - **Ne pas relancer quelqu'un qui attend une réponse.** Si le dernier échange est entrant et sans suite de l'utilisateur, le signaler avant de rédiger.
 - **Une trace après envoi confirmé, pas avant.** Un échange consigné pour un mail jamais parti pollue durablement le journal.
+- **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.

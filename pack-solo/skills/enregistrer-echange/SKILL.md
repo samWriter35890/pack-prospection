@@ -89,7 +89,26 @@ createRecords  Échanges
 - `Objet` : une phrase courte et reconnaissable, c'est ce qui s'affiche dans le journal.
 - `Date` : celle de l'échange, pas celle de la saisie. « Hier » se convertit.
 - `Résumé` : garder ce que l'utilisateur a dit, y compris les détails humains qui serviront dans six mois. C'est la valeur du journal.
-- **Aucun tiret cadratin.**
+- **Aucun tiret cadratin**, voir les garde-fous : l'interdiction vaut pour `Résumé` comme pour la phrase de confirmation.
+
+#### Faire avancer `Statut relation`, à chaque échange consigné
+
+**Cette règle est du chemin normal, pas du bouclage.** Tout échange écrit regarde le `Statut relation` de son contact et le fait avancer s'il est en retard sur la réalité, **qu'une affaire bouge ou non**. Un email de prospection, une invitation LinkedIn, un premier appel ne font bouger aucune affaire : une bascule rangée dans l'étape 4 n'est alors jamais lue. C'est exactement ce qui s'est produit le 19 août 2026, deux contacts laissés à `Nouveau`, l'un après un email parti et une relance posée, l'autre après une invitation envoyée.
+
+| Ce que l'échange vient de faire | `Statut relation` devient |
+|---|---|
+| Premier échange **sortant** sur un contact `Nouveau` | `À contacter` |
+| La personne a répondu, échange **entrant** | `En discussion` |
+
+Valeurs admises : Nouveau · À contacter · En discussion · Client · Dormant · Perdu.
+
+```
+updateRecords  Contacts  id=15  {"Statut relation": "À contacter"}
+```
+
+**Faire avancer, jamais reculer.** Un contact déjà `En discussion`, `Client` ou `Dormant` ne redescend pas sur un échange de plus. Sur un contact que l'on vient de créer dans le même geste, la valeur se pose **à la création** plutôt qu'en deux appels.
+
+Cette écriture-là ne se demande pas : elle ne fait que consigner ce qui vient d'avoir lieu, et elle se dit en incise dans la phrase de confirmation. Les bascules de **fin de cycle**, `Client` et `Dormant`, restent à l'étape 4 : celles-là dépendent d'une affaire, et elles se proposent.
 
 ### 4. Refermer ce que l'échange termine
 
@@ -109,7 +128,7 @@ queryRecords  Tâches  where=(Contact,eq,Marie Le Goff)~and(Statut,neq,Fait)
 updateRecords  Tâches  id=1  {"Statut": "Fait"}
 ```
 
-**L'étape de l'affaire.** Un devis parti, une proposition envoyée, un rendez-vous tenu la font bouger. La proposer, jamais la poser seul : une étape est une information commerciale, pas une conséquence mécanique. La bascule appartient à `creer-opportunite`, étape 4, qui pose du même geste la relance obligatoire d'une proposition et réclame la date de clôture prévue.
+**L'étape de l'affaire.** Un devis parti, une proposition envoyée, un rendez-vous tenu la font bouger. La proposer, jamais la poser seul : une étape est une information commerciale, pas une conséquence mécanique. La bascule appartient à `creer-opportunite`, étape 4, qui pose du même geste la relance obligatoire d'une proposition et réclame la date de clôture prévue. **Sur une clôture, c'est son étape 5 qui s'applique**, et elle date la clôture du jour de la décision : ne pas écrire l'étape ici en laissant la date derrière.
 
 > **Proposer, pas écrire d'office.** Deviner qu'un échange referme une tâche est une inférence, et une tâche fermée à tort disparaît de « Ma journée » sans laisser de trace. Ce qui n'est pas négociable, c'est de **regarder** et de **demander** : rendre la main sans avoir ouvert la liste des tâches est la faute, pas le fait de ne pas avoir écrit.
 
@@ -123,11 +142,10 @@ updateRecords  Contacts  id=12  {"Statut relation": "Client", "Prochaine relance
 |---|---|---|
 | L'affaire passe `Gagnée` | `Client` | effacée, ou reportée à la prochaine échéance **réelle** |
 | L'affaire passe `Perdue` | `Dormant` | effacée |
-| Premier échange sortant sur un contact `Nouveau` | `À contacter`, ou `En discussion` s'il a répondu | posée si une relance est évoquée |
 
-Valeurs admises : Nouveau · À contacter · En discussion · Client · Dormant · Perdu.
+Valeurs admises : Nouveau · À contacter · En discussion · Client · Dormant · Perdu. **Ce tableau ne porte que les deux bascules de fin de cycle**, celles qu'une affaire commande. L'avancement ordinaire d'un contact, lui, se fait à chaque échange, sur le chemin normal de l'étape 3, et il ne dépend d'aucune affaire.
 
-> **Effacer une relance, c'est écrire `null` dessus.** Si le connecteur refuse la valeur nulle sur ce champ, **reporter la date plutôt que la laisser échue** : une relance repoussée à une échéance réelle est toujours préférable à une relance périmée, qui, elle, remontera dans le briefing.
+> **Effacer une relance, c'est écrire `null` dessus, et le connecteur l'accepte.** Vérifié le 19 août 2026 sur `Contacts.Prochaine relance`, aux deux bouts du cycle, affaire gagnée et affaire perdue. Il n'y a donc pas de repli à prévoir : une relance qui n'a plus lieu d'être **s'efface**, elle ne se reporte pas faute de mieux. Reporter reste possible quand une échéance réelle existe, jamais pour contourner le champ.
 
  Comme pour l'étape de l'affaire, **proposer plutôt que poser d'office** : la bascule se dit en une incise dans la phrase de confirmation, « je passe Thomas en Client et j'enlève sa relance du 25 », et l'utilisateur peut refuser.
 
@@ -193,5 +211,7 @@ Une phrase, pas un tableau. « C'est noté : appel du 10 août avec Marie Le Gof
 - **Plusieurs échanges dans un même récit** (« j'ai appelé trois personnes ce matin ») : un enregistrement par personne, pas un fourre-tout. `createRecords` accepte plusieurs enregistrements en un appel.
 - **Une tâche se referme sur le mot de l'utilisateur, jamais sur une déduction.** Regarder les tâches ouvertes est obligatoire, les fermer ne l'est pas.
 - **Un bouclage qui ne ferme pas les trois tables n'est pas un bouclage.** `Tâches`, `Opportunités`, `Contacts`. Fermer les deux premières et oublier la troisième laisse une relance armée sur un client signé, et c'est le briefing du matin qui la fera exploser.
+- **`Statut relation` avance à chaque échange, pas seulement quand une affaire bouge.** Une règle rangée dans le bouclage ne s'applique qu'aux échanges qui déclenchent un bouclage, c'est-à-dire pas à la prospection, c'est-à-dire pas là où le champ sert. Un champ écrit à la création et jamais relu ment à partir du deuxième jour.
 - **Rendre la main sans avoir regardé les tâches ouvertes est une faute**, au même titre qu'un échange sans contact. Un échange qui accomplit une tâche et la laisse ouverte fabrique un retard qui n'existe pas.
 - **Ne jamais modifier ou supprimer un échange existant** pour « corriger » un contenu : en créer un nouveau, sauf demande explicite de correction. **Une seule exception, le rattachement à une affaire**, qui n'a pas d'autre voie : la procédure de suppression et recréation est décrite à l'étape 2, et elle recopie tous les champs.
+- **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.

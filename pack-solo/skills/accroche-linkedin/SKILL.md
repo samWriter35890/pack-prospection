@@ -121,8 +121,9 @@ Règles communes :
 - **Pas de pitch.** Une invitation ne vend rien. Elle ouvre une relation.
 - Dire **qui on est en une ligne**, tirée de `Qui je suis` et resserrée, **pourquoi cette personne précisément**, et rien d'autre. Ne pas réciter `Ce que je vends` dans une invitation : c'est exactement le pitch que la règle précédente interdit.
 - **Aucune question fermée** dans une note d'invitation, aucune demande de rendez-vous.
+- **Des phrases complètes, sujet et verbe, y compris dans les 300 caractères.** « Volontiers en lien. », « Au plaisir d'échanger. », « Ravi de vous suivre. » sont des formules tronquées : elles font gagner quinze caractères et donnent au message le ton d'un télégramme. Le plafond se tient en coupant une idée, jamais en amputant une phrase. Écrire « Je serais ravi d'échanger avec vous » plutôt que « Volontiers en lien ».
 - **Le ton de `Comment je parle`**, tel que l'utilisateur parle. Ce champ dit le tutoiement ou le vouvoiement et les mots à éviter. Pas de ton corporate.
-- **Aucun tiret cadratin**, ni dans le texte produit, ni dans les phrases dites autour. Le remplacer par une virgule ou deux points. L'utilisateur lit les deux, et c'est une signature d'écriture automatique.
+- **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.
 - Pas d'emoji sauf si l'utilisateur en utilise habituellement.
 
 **Compter les caractères d'une note d'invitation, et raccourcir avant de proposer.** Le compte s'annonce avec le texte, sous la forme `287 caractères`. Un texte de 315 caractères a l'air d'aller : LinkedIn le tronque au milieu d'un mot, et cela se voit. Proposer un texte trop long puis annoncer qu'il est trop long ne sert à rien, l'utilisateur l'a déjà copié.
@@ -148,9 +149,15 @@ Rappeler les plafonds, une fois, sans moraliser :
 
 Les formulations à reconnaître, toutes équivalentes : « c'est envoyé », « je l'ai déjà envoyée », « consigne tout cela », « note-le », « garde-le », « c'est parti ». **Un refus du texte proposé n'est pas un refus de consigner** : « non merci, je l'ai déjà envoyée » demande les deux à la fois, on abandonne le texte et on écrit la trace.
 
-1. **Le contact d'abord, s'il n'est pas en base.** Le créer selon `creer-contact`, sans en recopier la procédure : **l'organisation avant la personne**, le lien ne s'écrivant qu'à la création. Une personne à qui on vient d'écrire a sa place en base, c'est le lien effectif dont parle l'étape 1.
+1. **Le contact d'abord, s'il n'est pas en base. Et l'organisation avant le contact, sans exception.** Une personne à qui on vient d'écrire a sa place en base, c'est le lien effectif dont parle l'étape 1.
 
-   **« Selon `creer-contact` » veut dire ses règles comprises, pas seulement son ordre de création.** En particulier sa question de coordonnées, qui s'attache à la phrase de confirmation de l'étape 3 ci-dessous. Et sur ce chemin-ci, **`LinkedIn` n'est jamais vide** : on vient d'envoyer une invitation sur ce profil, l'URL est sous les yeux, elle se recopie sans qu'il y ait rien à demander. Un contact né d'une invitation LinkedIn sans son adresse LinkedIn est le seul cas de la base où le champ manquant était certain d'exister.
+   > **C'est un arrêt, pas une consigne.** Tant que l'organisation de la personne n'existe pas en base, **le contact ne se crée pas** : on s'arrête, on demande « chez qui travaille-t-elle ? », et on attend la réponse. Créer d'abord et rattacher ensuite est impossible, le lien ne s'écrivant qu'à la création : la fiche reste orpheline pour toujours, et il faut ouvrir NoCoDB à la main, ce que le pack se vend précisément à éviter. Sur une session de prospection, l'erreur se répète autant de fois qu'il y a de personnes.
+   >
+   > **Deux réponses lèvent l'arrêt, pas une seule** : le nom de l'entreprise, ou un « je ne sais pas » explicite de l'utilisateur. Une organisation absente du profil LinkedIn n'est pas un « je ne sais pas » : c'est ce que LinkedIn affiche, pas ce que l'utilisateur sait. Un indépendant qui facture à son nom prend une organisation à son nom.
+   >
+   > **Pourquoi un arrêt et pas une règle de plus.** Cette règle était déjà écrite ici, en v1.6.0, sous forme de renvoi à `creer-contact`, et elle a cassé pareil le 19 août 2026 : contact 16 créé avec `Organisation: null`. Dans la même session, `creer-contact`, qui en fait un blocage, a tenu sur le chemin voisin. **Une règle qui a échoué une fois ne se réécrit pas plus fort, elle devient un blocage.**
+
+   Le reste se crée selon `creer-contact`, sans en recopier la procédure. **« Selon `creer-contact` » veut dire ses règles comprises, pas seulement son ordre de création.** En particulier sa question de coordonnées, qui s'attache à la phrase de confirmation de l'étape 3 ci-dessous. Et sur ce chemin-ci, **`LinkedIn` n'est jamais vide** : on vient d'envoyer une invitation sur ce profil, l'URL est sous les yeux, elle se recopie sans qu'il y ait rien à demander. Un contact né d'une invitation LinkedIn sans son adresse LinkedIn est le seul cas de la base où le champ manquant était certain d'exister.
 
 2. **L'échange ensuite.**
 
@@ -171,6 +178,16 @@ createRecords  Échanges
 | `Sens` | Entrant · Sortant |
 
 `Objet` dit ce qui est parti : `Invitation envoyée` pour une note d'invitation, `Premier message LinkedIn` pour un message direct. La `Date` est celle de l'envoi, le jour même sauf mention contraire de l'utilisateur.
+
+**Puis faire avancer `Statut relation`, dans le même geste.** Un premier message sortant sur un contact `Nouveau` le passe à `À contacter`, une réponse reçue le passe à `En discussion`. C'est une écriture du **chemin normal** : elle ne dépend d'aucune affaire, et elle ne se demande pas.
+
+```
+updateRecords  Contacts  id=15  {"Statut relation": "À contacter"}
+```
+
+**Faire avancer, jamais reculer** : un contact déjà `En discussion`, `Client` ou `Dormant` n'y redescend pas. La règle complète est dans `enregistrer-echange`, étape 3, elle ne se recopie pas plus loin que ceci. Sans elle, un contact à qui on a écrit hier reste rangé avec ceux qu'on n'a jamais approchés, et le champ ne veut plus rien dire.
+
+Sur un contact créé à l'instant par l'étape précédente, `Statut relation` se pose directement à la création, à `À contacter`, plutôt qu'en un appel de plus.
 
 3. **Le dire en une phrase, en nommant la personne, et demander ce qui manque dans la même phrase.** « C'est noté : Éric Komlan est en base, chez Untel, avec son profil LinkedIn et l'invitation envoyée aujourd'hui. Si tu as son email ou son téléphone, je les ajoute. » Une consignation muette ne vaut pas mieux qu'une consignation absente : l'utilisateur n'a aucun moyen de voir la différence. Et une question reportée à plus tard est une question qui ne sera jamais posée.
 
@@ -202,6 +219,8 @@ createRecords  Tâches
 ## Garde-fous
 
 - **Un nouveau chemin de création hérite des règles du chemin qu'il double, ou il ne le double pas.** L'étape 6 crée des contacts comme `creer-contact` en crée : elle doit donc les créer aussi bien, coordonnées comprises. Renvoyer à un autre skill dispense de recopier sa procédure, jamais d'appliquer ses règles.
+- **Pas d'organisation, pas de contact. C'est un arrêt, pas une préférence.** Un contact orphelin est irréversible depuis l'assistant : il faut ouvrir NoCoDB à la main. La règle a déjà échoué une fois ici sous forme de renvoi, elle est donc écrite en blocage à l'étape 6.
+- **Une accroche s'écrit en phrases complètes, sujet et verbe, y compris dans les 300 caractères.** Le plafond se tient en coupant une idée, jamais en amputant une phrase : « Volontiers en lien » n'est pas une phrase, c'est une abréviation, et elle s'entend.
 
 - **Le skill ne clique jamais et n'envoie jamais.** Il produit un texte, l'utilisateur agit.
 - **Rien de scrapé ne va en base.** L'enrichissement de profil sert au message, puis disparaît. **Une seule exception, la correction d'une identité fausse** : nom, prénom, fonction, nom de l'organisation. Ces champs sont ceux que la base porte de plein droit, et un profil transmis en est la meilleure source.
