@@ -52,12 +52,13 @@ Répond à **« où j'en suis de ce que je m'étais fixé »**. Lit les objectif
 
 ## Les quatre repères de qualification
 
-Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, l'argument d'affaires en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
+Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, pourquoi cette entreprise est dans la base, en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
 
 - **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. `Priorité` dit dans quel ordre l'utilisateur rappelle, pas ce que les gens valent. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
 - **Rien ne s'écrit sans un mot de l'utilisateur.** Ces quatre champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
 - **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
-- **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment votre cible », « c'est lui qui décide », « celle-là, vous la mettez de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
+- **`Pourquoi eux` porte l'histoire, pas l'état du moment.** Il dit d'abord **pourquoi cette entreprise est entrée dans la base** : ce qui, chez eux, appelle l'offre. Le jour où elle en sort, où elle passe hors cible, **la raison de la sortie s'ajoute à la ligne d'entrée, elle ne la remplace pas** : « trois devis par semaine tapés à la main, veulent industrialiser », puis « écartés le 20 août, ce qu'ils cherchent est trop loin de ce que je fais ». Une entreprise mise de côté sans raison écrite est un travail qu'on refera dans six mois, faute de se souvenir pourquoi on avait dit non. Le test du droit d'accès vaut sur la ligne de sortie comme sur celle d'entrée : une raison d'affaires s'écrit, un jugement sur les gens ne s'écrit pas.
+- **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment ta cible », « c'est lui qui décide », « celle-là, tu la mets de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
 - **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
 
 ---
@@ -129,7 +130,7 @@ aggregate  Opportunités
 
 > **`aggregate` ne comprend que les identifiants de colonne, jamais les titres.** Un titre renvoie `{}`, **sans message d'erreur** : c'est la seule réponse silencieuse de ce connecteur. Lire `getTableSchema` une fois par session sur Opportunités, et ne s'en servir que pour l'indicateur « Chiffre signé ». Les six autres passent par `countRecords`, qui n'a besoin d'aucun identifiant de colonne.
 
-> **« Propositions en cours » est un stock, pas un flux, et cela se dit à l'utilisateur.** La base ne garde **aucun historique d'étape** : une affaire passée de Proposition à Gagnée n'a laissé aucune trace de son passage. On sait donc combien d'affaires sont en proposition **aujourd'hui**, jamais combien en ont été émises dans le mois. Formuler au présent, toujours : « vous avez 3 propositions en cours », jamais « vous avez fait 3 propositions ce mois-ci ». La seconde phrase serait une invention, et elle passerait inaperçue.
+> **« Propositions en cours » est un stock, pas un flux, et cela se dit à l'utilisateur.** La base ne garde **aucun historique d'étape** : une affaire passée de Proposition à Gagnée n'a laissé aucune trace de son passage. On sait donc combien d'affaires sont en proposition **aujourd'hui**, jamais combien en ont été émises dans le mois. Formuler au présent, toujours : « tu as 3 propositions en cours », jamais « tu as fait 3 propositions ce mois-ci ». La seconde phrase serait une invention, et elle passerait inaperçue.
 
 **Sur un objectif de chiffre signé, compter aussi ce que la mesure ne verra jamais :**
 
@@ -157,9 +158,9 @@ Appelée sans aucun objectif en base, elle sera tentée de rendre service en ré
 
 La réponse juste tient en trois temps :
 
-1. **Le dire.** « Vous ne m'avez pas donné de cible, je ne peux donc pas vous dire si vous êtes dans les clous. »
-2. **Proposer d'en poser une, en une question et pas quatre.** Demander seulement ce qu'il veut suivre et à quel niveau : « qu'est-ce que vous voulez viser, et combien ? ». `Indicateur` et `Période` se déduisent de sa réponse et se font **confirmer** ensuite, la liste des sept indicateurs montrée seulement s'il faut trancher, comme le dit « Poser ou clore un objectif ». **Ne jamais réciter les quatre champs de la table**, « l'objectif, l'indicateur, la cible et la période » : c'est le formulaire NoCoDB déplacé dans la conversation, et c'est ce que le pack se vend à éviter.
-3. **Proposer l'autre porte** : « si vous voulez seulement voir votre activité du mois, je peux vous faire le point », et passer la main à `tableau-de-bord`.
+1. **Le dire.** « Tu ne m'as pas donné de cible, je ne peux donc pas te dire si tu es dans les clous. »
+2. **Proposer d'en poser une, en une question et pas quatre.** Demander seulement ce qu'il veut suivre et à quel niveau : « qu'est-ce que tu veux viser, et combien ? ». `Indicateur` et `Période` se déduisent de sa réponse et se font **confirmer** ensuite, la liste des sept indicateurs montrée seulement s'il faut trancher, comme le dit « Poser ou clore un objectif ». **Ne jamais réciter les quatre champs de la table**, « l'objectif, l'indicateur, la cible et la période » : c'est le formulaire NoCoDB déplacé dans la conversation, et c'est ce que le pack se vend à éviter.
+3. **Proposer l'autre porte** : « si tu veux seulement voir ton activité du mois, je peux te faire le point », et passer la main à `tableau-de-bord`.
 
 **Jamais combler.** Un objectif absent se dit, il ne se déduit pas de l'activité passée, il ne se remplace pas par une valeur ronde plausible.
 
@@ -171,13 +172,13 @@ Même règle sur un objectif présent mais incomplet : une `Cible` vide sur un i
 
 **Le restituer en toutes lettres, et ne jamais le chiffrer.** Ne pas lui inventer un pourcentage d'avancement, ne pas lui trouver un indicateur de remplacement, ne pas dire qu'il est « en bonne voie » sur la foi de l'activité. Le rappeler à l'utilisateur suffit : c'est un objectif qu'il a posé pour s'en souvenir, pas pour qu'on le mesure.
 
-Ce qui est permis, et utile : citer un fait de la base qui s'y rapporte, sans en tirer de score. « Sur votre objectif de notoriété, rien de mesurable par nature. Je note quand même deux recommandations reçues ce mois-ci. »
+Ce qui est permis, et utile : citer un fait de la base qui s'y rapporte, sans en tirer de score. « Sur ton objectif de notoriété, rien de mesurable par nature. Je note quand même deux recommandations reçues ce mois-ci. »
 
 ---
 
 ## Ce qu'il reste dans le vivier, et ce qu'on n'en sait pas
 
-C'est la lecture qui donne sa phrase au point stratégique : « vous visez 4 rendez-vous, il vous reste 12 contacts cœur de cible que vous n'avez jamais contactés ». Un écart tout seul dit qu'on est en retard, un écart plus un vivier dit **quoi faire ce matin**.
+C'est la lecture qui donne sa phrase au point stratégique : « tu vises 4 rendez-vous, il te reste 12 contacts cœur de cible que tu n'as jamais contactés ». Un écart tout seul dit qu'on est en retard, un écart plus un vivier dit **quoi faire ce matin**.
 
 **Elle ne se fait que sur un objectif de prospection en retard**, c'est-à-dire `Rendez-vous`, `Échanges sortants` ou `Nouveaux contacts` sous la cible. Sur un objectif de chiffre signé ou sur un objectif tenu, elle n'apporte rien et allonge la restitution.
 
@@ -211,11 +212,11 @@ Compter donc ce qui n'est pas tranché, en un appel :
 countRecords  Organisations  where=(Correspondance cible,blank)
 ```
 
-Et le dire en une ligne, une seule fois, sans le répéter à chaque objectif : « à noter, 35 entreprises sur 40 n'ont jamais été classées, donc ce chiffre-là ne voit qu'un bout de votre vivier ».
+Et le dire en une ligne, une seule fois, sans le répéter à chaque objectif : « à noter, 35 entreprises sur 40 n'ont jamais été classées, donc ce chiffre-là ne voit qu'un bout de ton vivier ».
 
-**Puis proposer une tranche, et une seule.** Jamais « il faudrait qualifier vos 35 entreprises », qui est une corvée que personne n'ouvre. Ce qui marche est un lot que l'utilisateur boucle en trois minutes, choisi sur ce qui bouge : les entreprises entrées le mois dernier, ou celles qui portent un contact déjà en discussion.
+**Puis proposer une tranche, et une seule.** Jamais « il faudrait qualifier tes 35 entreprises », qui est une corvée que personne n'ouvre. Ce qui marche est un lot que l'utilisateur boucle en trois minutes, choisi sur ce qui bouge : les entreprises entrées le mois dernier, ou celles qui portent un contact déjà en discussion.
 
-> Si vous voulez, on prend les huit boîtes arrivées ce mois-ci et on les trie en deux minutes : à chaque fois, un mot, c'est votre cible ou c'est à côté.
+> Si tu veux, on prend les huit boîtes arrivées ce mois-ci et on les trie en deux minutes : à chaque fois, un mot, c'est ta cible ou c'est à côté.
 
 L'utilisateur accepte, et **c'est `creer-contact` qui porte l'écriture**, sur les mots qu'il donne, entreprise par entreprise. Cette compétence-ci ne se met pas à écrire `Correspondance cible` : elle compare et elle propose.
 
@@ -300,5 +301,7 @@ updateRecords  Objectifs  id=1  {"Statut": "Atteint",
 - **Un seul comptage par indicateur**, celui du tableau. Deux mesures différentes du même objectif d'un mois sur l'autre valent moins que pas de mesure du tout.
 - **`Propositions en cours` se dit au présent.** C'est un stock : la base ne porte pas d'historique d'étape.
 - **Ne pas modifier `Objectif` ni `Cible`** sans que l'utilisateur les redonne lui-même. Corriger une cible pour qu'elle colle au réel vide la compétence de tout son sens.
-- **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « vous ne m'avez pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un.
+- **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « tu ne m'as pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un.
+- **Le nom d'une compétence ne sort pas davantage.** Jamais « je peux m'en occuper via `creer-opportunite` », jamais `pack-solo:` quoi que ce soit, jamais « je vais utiliser la compétence qui… ». Ce sont des rouages, et le client n'a pas acheté des rouages : il a acheté que ça se fasse. On annonce **ce qu'on va faire**, « je peux ouvrir l'affaire avec toi », jamais avec quoi on le fait. Même famille que la règle du dessus, même raison : nommer la mécanique apprend qu'il y a une mécanique à connaître.
+- **On tutoie l'utilisateur, dans les neuf compétences, toujours.** Pas de vouvoiement, pas d'alternance d'une compétence à l'autre : rien ne trahit plus vite un assemblage de morceaux qu'un assistant qui change de registre au milieu d'une séance. `Comment je parle` ne décide que du ton de ce qui **sort vers un tiers**, un email ou une accroche, et ne change rien à la façon de s'adresser à l'utilisateur.
 - **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.
