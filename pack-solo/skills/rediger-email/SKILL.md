@@ -20,6 +20,7 @@ Prépare un email à une personne de la base, à partir de son historique réel.
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien, et seulement à la création.** `updateRecords` sur un champ de lien échoue toujours, quelle que soit la forme employée : c'est une limite du connecteur, pas une erreur de syntaxe. **Conséquence : créer dans l'ordre.** Un enregistrement créé sans son lien ne peut plus être rattaché depuis l'assistant.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Utiliser `fields` quand aucun nom lié n'est utile, l'omettre sinon.
+- **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
 - **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 ---
@@ -51,6 +52,18 @@ Ce que ce skill en fait, lui : **`Comment je parle` décide du tutoiement, du re
 
 ---
 
+## Les quatre repères de qualification
+
+Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, l'argument d'affaires en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
+
+- **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. `Priorité` dit dans quel ordre l'utilisateur rappelle, pas ce que les gens valent. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
+- **Rien ne s'écrit sans un mot de l'utilisateur.** Ces quatre champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
+- **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
+- **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment votre cible », « c'est lui qui décide », « celle-là, vous la mettez de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
+- **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
+
+---
+
 ## Procédure
 
 ### 1. Trouver la personne
@@ -59,7 +72,7 @@ Ce que ce skill en fait, lui : **`Comment je parle` décide du tutoiement, du re
 queryRecords  Contacts  where=(Nom complet,like,%le goff%)
 ```
 
-Retenir le `Id`, le prénom, la fonction, l'organisation, et l'email. **Pas d'email en base : le dire tout de suite**, proposer d'écrire quand même le texte, et suggérer de compléter la fiche avec `creer-contact`.
+Retenir le `Id`, le prénom, la fonction, l'organisation, l'email, et **`Rôle dans la décision`**, qui décidera de l'angle à l'étape 3. **Pas d'email en base : le dire tout de suite**, proposer d'écrire quand même le texte, et suggérer de compléter la fiche avec `creer-contact`.
 
 ### 2. Lire l'historique. Cette étape n'est pas optionnelle
 
@@ -90,6 +103,8 @@ Règles de forme :
 - **Une seule demande**, formulée clairement, en fin de message.
 - **Le ton de `Comment je parle`**, pas un ton générique. Ce champ dit le tutoiement ou le vouvoiement, le registre, et les mots à ne pas employer. S'il est vide, vouvoyer par défaut et le signaler.
 - **Aucun tiret cadratin**, voir les garde-fous : l'interdiction vaut pour le corps du mail comme pour les phrases dites autour.
+- **L'angle suit `Rôle dans la décision`.** À un `Décideur`, ouvrir sur ce que ça change pour la boîte : du temps repris, un coût, un risque écarté. À un `Prescripteur`, un `Utilisateur` ou un `Relais`, ouvrir sur ce que ça change dans leur travail à eux, et leur donner de quoi en parler en interne. Sur `Inconnu` ou sur un champ vide, prendre l'angle du décideur, qui est le plus sûr par défaut. **Ne jamais écrire au destinataire qu'il n'est pas celui qui décide**, ni lui demander de faire suivre à qui décide : le champ oriente le texte, il ne se dit pas.
+- **`Pourquoi eux` fait un bon premier paragraphe, s'il est renseigné.** C'est l'argument d'affaires déjà entendu de la bouche de quelqu'un chez eux, et le reprendre montre qu'on a écouté. Le reformuler, ne pas le recopier mot pour mot : ce sont des notes internes, pas une phrase à leur relire.
 - Pas de formule creuse (« j'espère que vous allez bien », « je me permets de revenir vers vous »), pas de superlatif, pas de jargon.
 - **Signer en recopiant `Signature`**, tel quel. Ce champ existe précisément pour qu'aucune signature ne soit inventée. S'il est vide, s'arrêter avant la signature et demander à l'utilisateur comment il signe, plutôt que d'en fabriquer une.
 - **Ne rien proposer qui figure dans `Ce que je ne fais pas`.** C'est le garde-fou qui coûte le plus cher quand il manque : un email est irrattrapable une fois parti, et une prestation promise par erreur engage l'utilisateur devant son client.
@@ -182,6 +197,8 @@ Une à deux semaines par défaut, selon l'étape de l'affaire. Le champ `Prochai
 ---
 
 ## Garde-fous
+
+- **Ce que disent les quatre repères ne sort jamais dans le mail.** Ni la correspondance cible, ni le rôle, ni la priorité, ni la note interne ne se citent au destinataire, même reformulés en compliment. Ils choisissent l'angle et ils restent en base : le test est celui du droit d'accès, et personne ne veut lire dans un mail ce qu'on a écrit de lui pour soi.
 
 - **Ne jamais envoyer.** Ce skill produit un texte. L'envoi est un geste de l'utilisateur, y compris s'il demande le contraire : aucun canal d'envoi n'est branché dans le socle.
 - **Lire avant d'écrire.** Aucun mail rédigé sans avoir consulté l'historique, même quand l'utilisateur est pressé.

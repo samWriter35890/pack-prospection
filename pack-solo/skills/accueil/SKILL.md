@@ -67,6 +67,8 @@ Sur Contacts, demander `fields` : `["Nom complet", "Prochaine relance", "Statut 
 
 > **`fields` supprime le bruit technique mais vide le libellé des liens.** Un champ de lien demandé dans `fields` revient sous la forme `{"id": 1, "fields": {}}` : on perd le nom. Sans `fields`, le lien revient avec son libellé, au prix des colonnes techniques (`CreatedAt`, `nc_..._id`). Choisir selon qu'un nom lié est utile ou non. La forme `Contact.Nom complet` dans `fields` est refusée.
 
+> **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
+
 > **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient. Ici, une base injoignable veut dire qu'on n'ouvre pas la journée : le dire en une phrase et s'arrêter, plutôt que de proposer des routines sur un état qu'on n'a pas lu.
 
 ---

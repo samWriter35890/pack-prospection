@@ -21,7 +21,20 @@ C'est le mode d'alimentation courant du Pack : robuste par construction, une ref
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien, et seulement à la création.** `updateRecords` sur un champ de lien échoue toujours, quelle que soit la forme employée : c'est une limite du connecteur, pas une erreur de syntaxe. **Conséquence : créer dans l'ordre.** Un enregistrement créé sans son lien ne peut plus être rattaché depuis l'assistant.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`.
+- **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
 - **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
+
+---
+
+## Les quatre repères de qualification
+
+Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, l'argument d'affaires en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
+
+- **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. `Priorité` dit dans quel ordre l'utilisateur rappelle, pas ce que les gens valent. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
+- **Rien ne s'écrit sans un mot de l'utilisateur.** Ces quatre champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
+- **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
+- **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment votre cible », « c'est lui qui décide », « celle-là, vous la mettez de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
+- **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
 
 ---
 
@@ -58,11 +71,13 @@ Sur une capture d'une dizaine de lignes, regrouper les recherches plutôt que d'
 
 Avant toute écriture, montrer ce qui va se passer, en trois blocs :
 
-| | Personne | Organisation | Décision |
-|---|---|---|---|
-| À créer | Marie Le Goff, Gérante | Odyssée 29 | Nouveau contact |
-| À compléter | Pierre Autret | Super Super | Fonction manquante, sera ajoutée |
-| Doublon probable | M. Legoff | Odyssee 29 | Même personne que Marie Le Goff ? |
+| | Personne | Organisation | Cible | Décision |
+|---|---|---|---|---|
+| À créer | Marie Le Goff, Gérante | Odyssée 29 | à demander | Nouveau contact |
+| À compléter | Pierre Autret | Super Super | Cœur de cible, déjà su | Fonction manquante, sera ajoutée |
+| Doublon probable | M. Legoff | Odyssee 29 | à demander | Même personne que Marie Le Goff ? |
+
+**La colonne « Cible » se remplit toute seule, elle ne se demande pas ici.** Elle affiche ce que la base sait déjà de l'organisation, lu à l'étape 2, et « à demander » pour celles qu'on va créer. Elle sert à montrer d'un coup d'oeil combien de questions vont arriver à l'étape suivante, et sur quelles entreprises. Une organisation déjà qualifiée ne se requalifie pas.
 
 **N'écrire qu'après validation explicite.** La lecture d'image se trompe sur les noms rares, les particules et les accents, et une base polluée ne se nettoie jamais. Cette étape n'est pas une politesse, c'est le garde-fou du skill.
 
@@ -73,6 +88,14 @@ Avant toute écriture, montrer ce qui va se passer, en trois blocs :
 Isoler les personnes dont la capture ne montre aucune entreprise, et **poser une seule question pour l'ensemble**, jamais une par personne. **La même question porte les coordonnées**, dans la même phrase et le même tour :
 
 > Trois de ces personnes n'affichent pas d'entreprise : Thomas Louedoc, X, Y. Savez-vous où elles travaillent ? Sans organisation, je ne pourrai plus les rattacher ensuite. Et si vous avez leurs adresses de profil LinkedIn sous la main, donnez-les moi dans la foulée : la capture ne les montre pas, et sans elles la fiche ne sert qu'à compter.
+
+**La question de la cible voyage dans la même phrase, par entreprise et jamais par personne.** Les organisations nouvelles se listent groupées, et l'utilisateur répond en une ligne :
+
+> Et pour ces quatre boîtes nouvelles : Odyssée 29, CLR Location, SARL L.B.G.E, Perfhomme. Lesquelles sont vraiment ce que vous cherchez, lesquelles sont à côté ? Un mot par boîte me suffit, je le note une fois pour toutes.
+
+Quand l'utilisateur ne trie qu'une partie du lot, écrire ce qu'il a dit et **laisser vide le reste**, sans réclamer. Vide veut dire qu'on n'a jamais tranché, et la question se reposera un autre jour. Écrire `À qualifier` partout pour faire propre reviendrait à interdire qu'on la repose.
+
+**Ni `Rôle dans la décision`, ni `Priorité`, ni `Pourquoi eux` ne s'écrivent sur un import.** Une capture de relations LinkedIn n'apprend rien de ces trois-là : les déduire d'une fonction en série produirait vingt inférences plausibles et invérifiables d'un coup. Le rôle se propose quand on crée une fiche une par une, dans `creer-contact` ; les deux autres sortent d'un échange.
 
 **Viser `LinkedIn` en premier.** C'est le seul des trois champs qu'un parcours LinkedIn peut plausiblement remplir : l'adresse est dans la barre du navigateur de la page dont l'utilisateur vient de faire la capture. `Email` et `Téléphone` se prennent s'ils viennent, ils ne se réclament pas ligne à ligne.
 
@@ -101,8 +124,10 @@ Les organisations d'abord, puisque les contacts pointent dessus.
 
 ```
 createRecords  Organisations
-{ "Nom": "Odyssée 29", "Source": "LinkedIn" }
+{ "Nom": "Odyssée 29", "Source": "LinkedIn", "Correspondance cible": "Cœur de cible" }
 ```
+
+Valeurs de `Correspondance cible` : Cœur de cible · Périphérie · Hors cible · À qualifier. **Le champ s'omet purement et simplement** quand l'utilisateur n'a rien dit de cette entreprise.
 
 Puis les personnes, plusieurs en un seul appel :
 
@@ -179,6 +204,8 @@ Un compte rendu court : combien créés, combien complétés, combien écartés 
 ---
 
 ## Garde-fous
+
+- **Sur un lot, on qualifie des entreprises, jamais des personnes.** Quatre organisations nouvelles font une question, quinze contacts n'en font aucune. C'est ce qui empêche l'import de devenir un questionnaire, et c'est aussi ce qui empêche de coller une étiquette de valeur sur vingt personnes qu'on n'a jamais eues au téléphone.
 
 - **Aucune écriture avant validation du tableau de contrôle.**
 - **Cadre RGPD.** N'entrent en base que nom, fonction, organisation et coordonnées professionnelles. Ce qui a été lu sur un profil pour personnaliser un message reste transitoire, jamais stocké.

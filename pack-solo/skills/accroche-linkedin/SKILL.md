@@ -21,6 +21,7 @@ C'est une position produit assumée : aucun envoi automatisé d'invitations dans
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien, et seulement à la création.** `updateRecords` sur un champ de lien échoue toujours, quelle que soit la forme employée : c'est une limite du connecteur, pas une erreur de syntaxe. **Conséquence : créer dans l'ordre.** Un enregistrement créé sans son lien ne peut plus être rattaché depuis l'assistant.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`.
+- **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
 - **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 ---
@@ -52,6 +53,18 @@ Ce que ce skill en fait, lui : **`Qui je suis` fournit la ligne de présentation
 
 ---
 
+## Les quatre repères de qualification
+
+Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, l'argument d'affaires en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
+
+- **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. `Priorité` dit dans quel ordre l'utilisateur rappelle, pas ce que les gens valent. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
+- **Rien ne s'écrit sans un mot de l'utilisateur.** Ces quatre champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
+- **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
+- **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment votre cible », « c'est lui qui décide », « celle-là, vous la mettez de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
+- **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
+
+---
+
 ## Procédure
 
 ### 1. Retrouver la personne, si elle est en base
@@ -60,7 +73,7 @@ Ce que ce skill en fait, lui : **`Qui je suis` fournit la ligne de présentation
 queryRecords  Contacts  where=(Nom complet,like,%le goff%)
 ```
 
-Ce qui sert à personnaliser : fonction, organisation, `Notes`, `Étiquettes`, et un éventuel échange antérieur.
+Ce qui sert à personnaliser : fonction, organisation, `Notes`, `Rôle dans la décision`, et un éventuel échange antérieur. Sur l'organisation, `Pourquoi eux` vaut de l'or : c'est l'argument d'affaires déjà entendu de la bouche de quelqu'un, et il fait un bien meilleur point d'accroche qu'un post trouvé au hasard.
 
 Si la personne n'est pas en base, ce n'est pas bloquant : l'accroche se prépare à partir de ce que l'utilisateur en dit ou de ce qu'il colle. **Ne pas créer la fiche à ce stade** : on ne remplit la base qu'avec les gens avec qui on a effectivement un lien. Elle se crée plus tard, à deux moments : **quand l'utilisateur dit que le message est parti**, étape 6 ci-dessous, et à l'acceptation, par `import-capture-linkedin`. Un message envoyé est un lien, une invitation préparée n'en est pas un.
 
@@ -92,6 +105,16 @@ Une accroche ne vaut que par son point d'accroche. Par ordre de force :
 Si aucun des trois n'est disponible, le dire. Une accroche sans point d'accroche est une accroche générique : elle abîme la réputation de l'expéditeur et il vaut mieux ne pas l'envoyer.
 
 **Un post qui parle d'un ancien employeur se situe avant de servir.** Le fil d'expérience dit lequel des deux postes est le poste actuel, et la date du changement. Un post de **départ** est un excellent point d'accroche, même six mois après. Une **félicitation d'ancienneté** dans une société que la personne a quittée est une bourde. Les deux se ressemblent au premier coup d'œil et ne se distinguent qu'en lisant le fil.
+
+**Le rôle de la personne change l'angle, pas la longueur.** `Rôle dans la décision` dit à qui on parle, et deux angles suffisent :
+
+| Rôle | Ce sur quoi le message ouvre |
+|---|---|
+| `Décideur` | ce que ça change pour la boîte : du temps repris, un coût, un risque écarté |
+| `Prescripteur`, `Utilisateur`, `Relais` | ce que ça change dans leur travail à eux, et de quoi ils pourront parler en interne |
+| `Inconnu`, vide | l'angle du décideur, qui est le plus sûr par défaut sur une TPE |
+
+Ne jamais écrire à quelqu'un qu'il n'est pas le décideur, ni lui demander de transmettre à qui décide dans un premier message. Le champ oriente ce qu'on met en avant, il ne se dit pas au destinataire.
 
 Quand un échange réel existe déjà, il prime sur tout le reste : c'est le lien concret du niveau 1, et il n'empêche pas de citer un post, il dispense d'en chercher un.
 
@@ -159,7 +182,7 @@ Les formulations à reconnaître, toutes équivalentes : « c'est envoyé », «
    >
    > **Pourquoi un arrêt et pas une règle de plus.** Cette règle était déjà écrite ici, en v1.6.0, sous forme de renvoi à `creer-contact`, et elle a cassé pareil le 19 août 2026 : contact 16 créé avec `Organisation: null`. Dans la même session, `creer-contact`, qui en fait un blocage, a tenu sur le chemin voisin. **Une règle qui a échoué une fois ne se réécrit pas plus fort, elle devient un blocage.**
 
-   Le reste se crée selon `creer-contact`, sans en recopier la procédure. **« Selon `creer-contact` » veut dire ses règles comprises, pas seulement son ordre de création.** En particulier sa question de coordonnées, qui s'attache à la phrase de confirmation de l'étape 3 ci-dessous. Et sur ce chemin-ci, **`LinkedIn` n'est jamais vide** : on vient d'envoyer une invitation sur ce profil, l'URL est sous les yeux, elle se recopie sans qu'il y ait rien à demander. Un contact né d'une invitation LinkedIn sans son adresse LinkedIn est le seul cas de la base où le champ manquant était certain d'exister.
+   Le reste se crée selon `creer-contact`, sans en recopier la procédure. **« Selon `creer-contact` » veut dire ses règles comprises, pas seulement son ordre de création.** En particulier sa question de coordonnées, **et sa question de cible sur une organisation qu'on vient de créer**, qui s'attachent l'une comme l'autre à la phrase de confirmation de l'étape 3 ci-dessous. Sur une session de prospection, la question de cible se pose **par entreprise et une seule fois**, groupée à la fin comme celle des coordonnées. Et sur ce chemin-ci, **`LinkedIn` n'est jamais vide** : on vient d'envoyer une invitation sur ce profil, l'URL est sous les yeux, elle se recopie sans qu'il y ait rien à demander. Un contact né d'une invitation LinkedIn sans son adresse LinkedIn est le seul cas de la base où le champ manquant était certain d'exister.
 
 2. **L'échange ensuite.**
 
@@ -219,6 +242,8 @@ createRecords  Tâches
 ---
 
 ## Garde-fous
+
+- **`Priorité` ne se lit pas pour trier une session de prospection, et elle ne s'écrit jamais ici.** Elle sort d'un échange où l'on a parlé à quelqu'un, pas d'un message envoyé. Et le tri sur ce champ est faux par construction, voir les quatre repères ci-dessus : on **filtre**, on ne trie pas.
 
 - **Un nouveau chemin de création hérite des règles du chemin qu'il double, ou il ne le double pas.** L'étape 6 crée des contacts comme `creer-contact` en crée : elle doit donc les créer aussi bien, coordonnées comprises. Renvoyer à un autre skill dispense de recopier sa procédure, jamais d'appliquer ses règles.
 - **Pas d'organisation, pas de contact. C'est un arrêt, pas une préférence.** Un contact orphelin est irréversible depuis l'assistant : il faut ouvrir NoCoDB à la main. La règle a déjà échoué une fois ici sous forme de renvoi, elle est donc écrite en blocage à l'étape 6.

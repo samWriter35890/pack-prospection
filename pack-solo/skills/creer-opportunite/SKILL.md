@@ -21,6 +21,7 @@ Appelé directement, ou depuis `enregistrer-echange` quand le récit décrit une
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien, et seulement à la création.** `updateRecords` sur un champ de lien échoue toujours, quelle que soit la forme employée : c'est une limite du connecteur, pas une erreur de syntaxe. **Conséquence : créer dans l'ordre.** Un enregistrement créé sans son lien ne peut plus être rattaché depuis l'assistant.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste, ne jamais traduire ni abréger.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Utiliser `fields` quand aucun nom lié n'est utile, l'omettre sinon.
+- **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
 - **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 ---
@@ -52,6 +53,18 @@ Ce que ce skill en fait, lui : c'est le seul des quatre qui n'écrit pas de text
 
 ---
 
+## Les quatre repères de qualification
+
+Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, l'argument d'affaires en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
+
+- **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. `Priorité` dit dans quel ordre l'utilisateur rappelle, pas ce que les gens valent. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
+- **Rien ne s'écrit sans un mot de l'utilisateur.** Ces quatre champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
+- **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
+- **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment votre cible », « c'est lui qui décide », « celle-là, vous la mettez de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
+- **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
+
+---
+
 ## Procédure
 
 ### 1. Créer, ou faire évoluer ? La question à trancher en premier
@@ -73,6 +86,8 @@ Si le contact n'existe pas encore, passer par `creer-contact` avant. **Une oppor
 ### 2. Retenir les identifiants
 
 Le `Id` du contact, et celui de son organisation. L'organisation se lit sur la fiche du contact, elle se recopie sur l'affaire pour permettre le filtrage par entreprise.
+
+**Lire au passage `Correspondance cible` et `Pourquoi eux` sur l'organisation.** Les deux servent à l'étape 3, l'un pour signaler une contradiction, l'autre pour éviter de redemander ce qui est déjà écrit.
 
 ### 3. Créer l'affaire
 
@@ -99,6 +114,28 @@ createRecords  Opportunités
 - **Aucun tiret cadratin**, voir les garde-fous : l'interdiction vaut pour `Notes` comme pour la phrase de confirmation.
 
 > **`Contact` et `Organisation` se posent ici ou jamais.** Les deux liens ne s'écrivent qu'à la création, voir les conventions ci-dessus. Une affaire créée sans contact restera sans interlocuteur, et le filtre par entreprise du bilan l'ignorera.
+
+#### Une affaire qui s'ouvre est le meilleur moment pour écrire `Pourquoi eux`
+
+Ce qu'on vient de dire en créant l'affaire, ce que le client cherche et pourquoi il l'a demandé, est exactement ce que `Organisations.Pourquoi eux` attend. C'est écrit dans `Notes` de l'affaire, où cela vaut pour **cette vente-là** ; sur l'organisation, cela vaut pour **toutes les suivantes**, et c'est ce qui resservira dans une accroche ou un mail dans six mois.
+
+Écrire seulement si le champ est vide et si l'utilisateur a donné une raison d'affaires, en une ligne et dans ses mots :
+
+```
+updateRecords  Organisations  id=7  {"Pourquoi eux": "trois devis par semaine tapés à la main, veulent industrialiser"}
+```
+
+Rien ne s'invente à partir du nom de l'affaire. Si l'utilisateur n'a dit que ce qu'il vend, sans dire pourquoi eux, laisser vide : la question a sa place dans un échange, pas ici.
+
+#### Une affaire chez une entreprise marquée hors cible se signale, elle ne se refuse pas
+
+Le cas arrive, et il est intéressant plutôt qu'anormal : une recommandation, un besoin inattendu, une boîte jugée à côté il y a six mois. **L'affaire se crée normalement**, puis une phrase le dit, une seule, sans insister :
+
+> C'est ouvert. Petite chose : cette boîte est notée comme à côté de ce que tu cherches. Ça arrive, dis-moi juste s'il faut la reclasser.
+
+Deux suites, et les deux sont bonnes : l'utilisateur reclasse l'entreprise, et on écrit `Correspondance cible` ; ou il confirme que c'est une exception, et **on n'écrit rien du tout**, y compris pas `À qualifier`. Ne jamais reposer la question à l'affaire suivante chez la même entreprise.
+
+**Sur `À qualifier`, la même phrase, plus courte.** Une entreprise qu'on n'avait pas su trancher et chez qui une affaire s'ouvre est une entreprise sur laquelle on en sait maintenant davantage : c'est le moment de le demander. Sur `Cœur de cible`, `Périphérie` ou un champ vide, **ne rien dire** : il n'y a aucune contradiction à signaler, et un commentaire de plus à chaque affaire créée est un formulaire déguisé.
 
 ### 4. Faire évoluer l'étape
 
@@ -185,6 +222,7 @@ Une phrase. « L'affaire site vitrine passe en proposition à 2 950 €, relance
 - **Une affaire sans `Clôture prévue` n'apparaît dans aucun bilan, même gagnée.** Le champ **se propose dès la création, à toutes les étapes**, et au plus tard au passage en `Proposition`. C'est la seule date qui se propose plutôt que de rester vide, et proposer une prévision datée n'est pas l'inventer : c'est la seule à porter « prévue » dans son nom. Réserver la proposition à `Proposition` laisse passer tout ce qui s'ouvre en `Identifiée`, c'est-à-dire l'essentiel.
 - **Ne pas reculer une étape en silence.** Si l'affaire régresse, le dire et demander confirmation : c'est une information commerciale, pas une correction de saisie.
 - **Une affaire close porte la date de sa clôture, pas celle qu'on espérait.** `Clôture prévue` est le champ sur lequel les deux bilans comptent le conclu : le jour où l'affaire est tranchée, la prévision devient un fait et se met à jour dans le même appel que l'étape.
+- **Une contradiction se signale une fois, et le silence de l'utilisateur clôt le sujet.** Une entreprise hors cible chez qui une affaire s'ouvre n'est pas une erreur à corriger : c'est une information à lui rendre. S'il ne reclasse pas, rien ne s'écrit, et la question ne revient pas à l'affaire suivante.
 - **Un compteur de liens ne répond pas à une question qui porte un statut.** `Tâches` et `Échanges` comptent des liens, pas des tâches ouvertes ni des échanges récents. Tout ce qui porte un statut se lit par un appel filtré, et un nombre ne s'annonce qu'avec la liste qui le justifie.
 - **Le récit de l'échange ne va pas ici**, il va dans `enregistrer-echange`. `Notes` porte le contexte durable de l'affaire, pas son journal. **Mais passer la main est un geste, pas une dispense** : quand l'information vient d'une conversation, proposer de la consigner dans le même tour. Un échange tombé dans l'intervalle entre deux compétences est un échange perdu.
 - **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « vous ne m'avez pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un.

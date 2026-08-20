@@ -20,7 +20,20 @@ Transforme un récit parlé en une trace propre dans le journal : un Échange da
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste, ne jamais traduire ni abréger.
 - **Filtrer côté requête**, jamais en rapatriant la table. Syntaxe `(champ,opérateur,valeur)`, combinée par `~and` et `~or`.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Utiliser `fields` quand aucun nom lié n'est utile, l'omettre sinon.
+- **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
 - **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
+
+---
+
+## Les quatre repères de qualification
+
+Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, l'argument d'affaires en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
+
+- **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. `Priorité` dit dans quel ordre l'utilisateur rappelle, pas ce que les gens valent. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
+- **Rien ne s'écrit sans un mot de l'utilisateur.** Ces quatre champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
+- **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
+- **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment votre cible », « c'est lui qui décide », « celle-là, vous la mettez de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
+- **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
 
 ---
 
@@ -110,6 +123,35 @@ updateRecords  Contacts  id=15  {"Statut relation": "À contacter"}
 **Faire avancer, jamais reculer.** Un contact déjà `En discussion`, `Client` ou `Dormant` ne redescend pas sur un échange de plus. Sur un contact que l'on vient de créer dans le même geste, la valeur se pose **à la création** plutôt qu'en deux appels.
 
 Cette écriture-là ne se demande pas : elle ne fait que consigner ce qui vient d'avoir lieu, et elle se dit en incise dans la phrase de confirmation. Les bascules de **fin de cycle**, `Client` et `Dormant`, restent à l'étape 4 : celles-là dépendent d'une affaire, et elles se proposent.
+
+#### Ce que l'échange vient d'apprendre sur la qualification
+
+Un vrai échange apprend trois choses qu'aucune fiche ne sait deviner : **pourquoi cette boîte-là**, **qui décide chez eux**, et **ce que ça vaut la peine de relancer**. C'est le seul moment du pack où ces trois réponses existent, et elles se perdent en une journée si personne ne les écrit.
+
+**Cette étape ne se joue que sur un échange de fond**, c'est-à-dire `RDV` ou `Appel`, entrant ou sortant, où l'on a parlé à quelqu'un. Un email parti, une invitation LinkedIn, un SMS n'apprennent rien de tout cela : sur ces canaux, passer directement à l'étape 4. Rien ne se demande en série, et rien ne se pose sur un échange qu'on consigne en deux mots.
+
+**Ce qui a été dit s'écrit sans rien demander.** Si le récit de l'utilisateur porte déjà la réponse, la prendre et la dire en incise dans la confirmation, exactement comme `Statut relation` :
+
+| Ce que l'utilisateur a raconté | Ce qui s'écrit |
+|---|---|
+| « ils galèrent avec leurs plannings sur Excel » | `Organisations.Pourquoi eux` : « plannings gérés sur Excel, perte de temps reconnue » |
+| « c'est lui qui signe », « il faudra que ça passe par sa associée » | `Contacts.Rôle dans la décision` : `Décideur`, `Relais` |
+| « celui-là je le rappelle lundi sans faute » | `Contacts.Priorité` : `Haute` |
+
+**Ce qui n'a pas été dit se demande une fois, à la fin, et seulement si le champ est vide.** Une seule question, pas trois, et elle porte sur ce qui manque le plus :
+
+> Ce rendez-vous, tu le classes comment pour la suite : à rappeler vite, ou plutôt à laisser mûrir ?
+
+`Priorité` est du **ressenti**, et c'est voulu : elle sort d'un échange, elle ne se calcule pas. Ne jamais la déduire d'un montant, d'une taille d'entreprise ni d'une correspondance cible. Valeurs : Haute · Moyenne · Basse · En veille.
+
+```
+updateRecords  Contacts       id=12  {"Priorité": "Haute", "Rôle dans la décision": "Décideur"}
+updateRecords  Organisations  id=7   {"Pourquoi eux": "plannings gérés sur Excel, perte de temps reconnue"}
+```
+
+**`Pourquoi eux` s'écrit avec les mots de l'utilisateur, en une ligne, et il vise l'entreprise et pas la personne.** « Ils perdent une demi-journée par semaine sur leurs devis » est un argument d'affaires. « Sympa, ouvert à la discussion » est un jugement sur quelqu'un, et il n'a rien à faire en base : le test est de se demander si on le lirait à voix haute à l'intéressé.
+
+**Un champ déjà rempli ne s'écrase pas sur une impression.** `Pourquoi eux` se complète quand l'échange apporte vraiment du neuf, et dans ce cas la nouvelle ligne s'ajoute à l'ancienne plutôt que de la remplacer. `Priorité`, elle, se réécrit sans état d'âme : c'est un champ du présent.
 
 ### 4. Refermer ce que l'échange termine
 
@@ -212,6 +254,8 @@ Une phrase, pas un tableau. « C'est noté : appel du 10 août avec Marie Le Gof
 - **Plusieurs échanges dans un même récit** (« j'ai appelé trois personnes ce matin ») : un enregistrement par personne, pas un fourre-tout. `createRecords` accepte plusieurs enregistrements en un appel.
 - **Une tâche se referme sur le mot de l'utilisateur, jamais sur une déduction.** Regarder les tâches ouvertes est obligatoire, les fermer ne l'est pas.
 - **Un bouclage qui ne ferme pas les trois tables n'est pas un bouclage.** `Tâches`, `Opportunités`, `Contacts`. Fermer les deux premières et oublier la troisième laisse une relance armée sur un client signé, et c'est le briefing du matin qui la fera exploser.
+- **La qualification se demande sur un rendez-vous ou un appel, jamais sur un email ni une invitation.** Un échange de prospection sortant n'apprend rien de ce que ces champs disent, et poser la question à chaque ligne du journal transforme la consignation en formulaire, ce que le pack se vend à éviter.
+- **`Priorité` se donne, elle ne se déduit pas.** Aucun montant, aucune taille d'entreprise, aucune correspondance cible ne la produit. C'est le seul champ du pack qui est ouvertement du ressenti, et le déduire d'un chiffre reviendrait à fabriquer le score qu'on s'est interdit.
 - **`Statut relation` avance à chaque échange, pas seulement quand une affaire bouge.** Une règle rangée dans le bouclage ne s'applique qu'aux échanges qui déclenchent un bouclage, c'est-à-dire pas à la prospection, c'est-à-dire pas là où le champ sert. Un champ écrit à la création et jamais relu ment à partir du deuxième jour.
 - **Rendre la main sans avoir regardé les tâches ouvertes est une faute**, au même titre qu'un échange sans contact. Un échange qui accomplit une tâche et la laisse ouverte fabrique un retard qui n'existe pas.
 - **Ne jamais modifier ou supprimer un échange existant** pour « corriger » un contenu : en créer un nouveau, sauf demande explicite de correction. **Une seule exception, le rattachement à une affaire**, qui n'a pas d'autre voie : la procédure de suppression et recréation est décrite à l'étape 2, et elle recopie tous les champs.

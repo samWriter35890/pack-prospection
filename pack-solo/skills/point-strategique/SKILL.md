@@ -31,6 +31,7 @@ Répond à **« où j'en suis de ce que je m'étais fixé »**. Lit les objectif
 - **Un tri s'écrit `sort=[{"field": "Échéance", "description": "asc"}]`.** La clé qui porte le sens s'appelle bien `description`, c'est un défaut de nommage du connecteur. Une chaîne comme `"Échéance asc"` est refusée.
 - **Filtrer et compter côté requête**, jamais en rapatriant la table pour compter soi-même.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
+- **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
 - **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 > ### Une fenêtre de dates ne s'écrit pas avec `btw`, malgré la documentation de l'outil
@@ -46,6 +47,18 @@ Répond à **« où j'en suis de ce que je m'étais fixé »**. Lit les objectif
 > **La borne haute inclut la journée entière**, y compris sur un champ horodaté : un enregistrement créé le 13 août à 12h44 est bien compté par `(Créé le,lte,exactDate,2026-08-13)`. Vérifié aux deux bornes. C'est ce qui rend un mois calendaire mesurable sans perdre son dernier jour.
 >
 > **C'est un échec bruyant, donc sans danger**, à la différence du silence de `aggregate` sur un titre de colonne. Il n'empêche pas de se tromper, il empêche de se tromper sans le savoir.
+
+---
+
+## Les quatre repères de qualification
+
+Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, l'argument d'affaires en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
+
+- **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. `Priorité` dit dans quel ordre l'utilisateur rappelle, pas ce que les gens valent. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
+- **Rien ne s'écrit sans un mot de l'utilisateur.** Ces quatre champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
+- **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
+- **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment votre cible », « c'est lui qui décide », « celle-là, vous la mettez de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
+- **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
 
 ---
 
@@ -162,6 +175,54 @@ Ce qui est permis, et utile : citer un fait de la base qui s'y rapporte, sans en
 
 ---
 
+## Ce qu'il reste dans le vivier, et ce qu'on n'en sait pas
+
+C'est la lecture qui donne sa phrase au point stratégique : « vous visez 4 rendez-vous, il vous reste 12 contacts cœur de cible que vous n'avez jamais contactés ». Un écart tout seul dit qu'on est en retard, un écart plus un vivier dit **quoi faire ce matin**.
+
+**Elle ne se fait que sur un objectif de prospection en retard**, c'est-à-dire `Rendez-vous`, `Échanges sortants` ou `Nouveaux contacts` sous la cible. Sur un objectif de chiffre signé ou sur un objectif tenu, elle n'apporte rien et allonge la restitution.
+
+### Deux appels, parce qu'un filtre ne traverse pas un lien
+
+La correspondance cible vit sur l'organisation, le statut de relation vit sur le contact. On lit donc les entreprises d'abord, puis les personnes qui en dépendent :
+
+```
+queryRecords  Organisations  where=(Correspondance cible,eq,Cœur de cible)
+                             fields=["Nom"]  limit=50
+```
+
+Puis, avec les noms obtenus, sur le libellé affiché du lien :
+
+```
+queryRecords  Contacts  where=(Organisation,in,Odyssée 29,Super Super,CLR Location)~and(Statut relation,eq,Nouveau)
+                        fields=["Nom complet","Fonction"]  limit=25
+```
+
+**Trois bornes, toutes les trois nécessaires.** Cinquante organisations au maximum au premier appel, parce qu'une liste de deux cents noms dans un filtre devient une URL qui casse. Vingt-cinq contacts au second, parce que la phrase annonce un nombre et cite trois noms, pas vingt-cinq. Et si le premier appel rend plus de cinquante entreprises, le dire : « je regarde sur les cinquante premières », plutôt que d'annoncer un total faux.
+
+**`Périphérie` ne se mélange pas à `Cœur de cible` dans le même chiffre.** Si le cœur de cible est vide et que la périphérie ne l'est pas, faire un second passage et le nommer pour ce qu'il est : « plus rien en cœur de cible, mais 9 contacts en périphérie ».
+
+### Nommer l'angle mort plutôt que de le combler
+
+Sur une base jeune, la plupart des entreprises n'ont pas encore été jugées, et un comptage sur le seul cœur de cible dirait « 2 » là où la vérité est « 2, sur 40 dont 35 n'ont jamais été regardées ». **Un chiffre partiel présenté comme complet est un chiffre faux.**
+
+Compter donc ce qui n'est pas tranché, en un appel :
+
+```
+countRecords  Organisations  where=(Correspondance cible,blank)
+```
+
+Et le dire en une ligne, une seule fois, sans le répéter à chaque objectif : « à noter, 35 entreprises sur 40 n'ont jamais été classées, donc ce chiffre-là ne voit qu'un bout de votre vivier ».
+
+**Puis proposer une tranche, et une seule.** Jamais « il faudrait qualifier vos 35 entreprises », qui est une corvée que personne n'ouvre. Ce qui marche est un lot que l'utilisateur boucle en trois minutes, choisi sur ce qui bouge : les entreprises entrées le mois dernier, ou celles qui portent un contact déjà en discussion.
+
+> Si vous voulez, on prend les huit boîtes arrivées ce mois-ci et on les trie en deux minutes : à chaque fois, un mot, c'est votre cible ou c'est à côté.
+
+L'utilisateur accepte, et **c'est `creer-contact` qui porte l'écriture**, sur les mots qu'il donne, entreprise par entreprise. Cette compétence-ci ne se met pas à écrire `Correspondance cible` : elle compare et elle propose.
+
+**Le silence clôt le sujet.** Si l'utilisateur ne relève pas, ne pas y revenir dans la même séance, et ne pas rouvrir la proposition au point stratégique suivant si elle a déjà été déclinée. Un point stratégique qui réclame chaque mois le même rangement devient un reproche mensuel, et le client cesse de le demander.
+
+---
+
 ## Restituer
 
 Un objectif par bloc, court. Pour chacun :
@@ -230,6 +291,8 @@ updateRecords  Objectifs  id=1  {"Statut": "Atteint",
 - **Un objectif absent se dit.** Il ne se déduit pas, il ne s'estime pas, il ne se remplit pas d'une valeur plausible.
 - **Ne jamais se rabattre sur un bilan d'activité** faute d'objectif. C'est le travail de `tableau-de-bord`, et lui donner le nom d'un point stratégique trompe l'utilisateur sur ce qu'il lit.
 - **Ne jamais chiffrer un objectif `Autre (non mesuré)`**, ni par un pourcentage, ni par un indicateur de substitution.
+- **Un comptage sur la qualification s'annonce avec ce qu'il ne voit pas.** Tant que des entreprises restent non classées, « 12 contacts cœur de cible » est un sous-total, pas un total. Le dire une fois, et donner le nombre d'entreprises jamais jugées dans la même phrase.
+- **Ne jamais trier ni classer des personnes dans une restitution.** Cette compétence compte des contacts et nomme trois entreprises, elle ne produit jamais un palmarès de gens à rappeler par ordre de valeur. `Priorité` sert à **filtrer** un vivier, jamais à ranger des personnes les unes après les autres, et le tri sur ce champ est faux par construction, voir les quatre repères ci-dessus.
 - **Ne jamais présenter un chiffre calculé de tête.** Tout nombre annoncé sort d'un appel. En cas de doute, recouper par un `countRecords` plutôt qu'arrondir.
 - **Une recommandation se relit avant de s'écrire, exactement comme un chiffre se recompte.** Elle nomme des enregistrements, donc elle affirme quelque chose de leur état, donc elle se vérifie par un appel dans le tour même. Une règle qui ne parle que des chiffres laisse passer les conseils, et c'est le conseil que l'utilisateur suit.
 - **Une date se dit telle qu'elle est en base.** « hier », « la semaine dernière », « il y a un mois » sont des calculs, et ils tombent faux exactement comme un total : les poser contre la date du jour avant de les écrire, ou citer la date. Une date fausse dans une phrase juste passe inaperçue.

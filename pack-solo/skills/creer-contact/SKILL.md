@@ -21,7 +21,20 @@ Appelé directement, ou depuis `enregistrer-echange` quand la personne racontée
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien, et seulement à la création.** `updateRecords` sur un champ de lien échoue toujours, quelle que soit la forme employée : c'est une limite du connecteur, pas une erreur de syntaxe. **Conséquence : créer dans l'ordre.** Un enregistrement créé sans son lien ne peut plus être rattaché depuis l'assistant.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`.
+- **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
 - **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
+
+---
+
+## Les quatre repères de qualification
+
+Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, l'argument d'affaires en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
+
+- **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. `Priorité` dit dans quel ordre l'utilisateur rappelle, pas ce que les gens valent. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
+- **Rien ne s'écrit sans un mot de l'utilisateur.** Ces quatre champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
+- **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
+- **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment votre cible », « c'est lui qui décide », « celle-là, vous la mettez de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
+- **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
 
 ---
 
@@ -62,8 +75,23 @@ createRecords  Organisations
 |---|---|
 | `Taille` | Solo · TPE · PME · Grand compte |
 | `Source` | Réseau · Salon · Recommandation · LinkedIn · Web · Import Datablist |
+| `Correspondance cible` | Cœur de cible · Périphérie · Hors cible · À qualifier |
 
 `Secteur` est une liste **adaptée à chaque client** : lire les valeurs disponibles avec `getTableSchema` avant d'écrire, ne pas en inventer une.
+
+#### Sur une organisation qu'on vient de créer, demander si c'est une cible
+
+C'est la seule question de qualification de ce skill, et elle se pose **une fois par entreprise, jamais par personne**. Une organisation déjà en base et déjà renseignée ne se redemande pas, et deux contacts de la même boîte ne valent qu'une question.
+
+**Ce qu'on a sous la main ne suffit presque jamais à trancher seul.** L'organisation vient d'être créée avec son nom, parfois sa ville, rarement son secteur ou sa taille : il n'y a pas de quoi la comparer sérieusement à `À qui je le vends`. Donc **on demande la conclusion plutôt que les ingrédients**, en une question à laquelle un dirigeant répond en un mot :
+
+> Super Super, c'est le genre d'entreprise que vous cherchez, ou c'est plutôt à côté ?
+
+Quand le nom, la ville ou la fonction du contact donnent vraiment un indice, **proposer** au lieu de demander à blanc, et laisser corriger : « une boîte de location de matériel à Rennes, ça tombe en plein dans ce que vous visez, je le note comme ça ? ». La proposition est une aide, pas une décision : sans réponse, rien ne s'écrit.
+
+Deux réponses closent la question, et une seule est un « oui ». Un « je ne sais pas encore » s'écrit `À qualifier`, ce qui n'est pas la même chose que de laisser vide : cela veut dire que la question a été posée, et personne ne la reposera.
+
+**`Pourquoi eux` ne se demande pas ici.** L'argument d'affaires, ce qui chez eux appelle l'offre, se sait après avoir parlé aux gens, pas au moment où on note leur nom. Il s'écrit dans `enregistrer-echange`, sur les mots de l'utilisateur. Si l'utilisateur le donne spontanément en créant la fiche, le prendre : ce qui est dit s'écrit, ce qui n'est pas dit ne se demande pas deux fois.
 
 Une personne indépendante sans structure : créer quand même l'organisation à son nom si elle facture, sinon laisser le lien vide.
 
@@ -82,6 +110,7 @@ createRecords  Contacts
   "LinkedIn":        "https://www.linkedin.com/in/...",
   "Statut relation": "Nouveau",
   "Source":          "Réseau",
+  "Rôle dans la décision": "Décideur",
   "Organisation":    {"Id": 7}
 }
 ```
@@ -90,8 +119,20 @@ createRecords  Contacts
 |---|---|
 | `Statut relation` | Nouveau · À contacter · En discussion · Client · Dormant · Perdu |
 | `Source` | LinkedIn · Email · Salon · Réseau · Recommandation · Import Datablist |
+| `Rôle dans la décision` | Décideur · Prescripteur · Utilisateur · Relais · Inconnu |
 
-`Étiquettes` est une liste multiple **adaptée à chaque client** : lire les valeurs avec `getTableSchema` avant d'écrire.
+#### `Rôle dans la décision` se propose depuis la fonction, et seulement quand elle le dit
+
+Dans une TPE, la fonction porte la réponse : un gérant, un dirigeant, un fondateur, un associé, un artisan à son compte **décide**. C'est le cas le plus fréquent de cette base, et le taire serait laisser vide un champ dont la réponse est sous les yeux. Alors on le glisse dans la confirmation, sans en faire une question de plus :
+
+> Gérante, donc c'est elle qui décide chez eux, je le note comme ça ?
+
+Partout ailleurs, la fonction ne dit rien de l'achat. « Responsable clientèle », « chargé de mission », « directeur technique » dans une structure de deux cents personnes : on ne sait pas, et on ne devine pas. Deux conduites, selon ce qu'on a :
+
+- **La fonction ne tranche pas, et on n'a rien d'autre** : laisser vide. Le champ se remplira au premier échange, quand la personne aura dit elle-même qui décide.
+- **La question a été posée et personne n'a su répondre** : écrire `Inconnu`, qui veut dire « demandé, non tranché », et ne plus la reposer.
+
+`Priorité` ne se demande pas ici. Elle se donne à la sortie d'un échange, pas au moment où on note un nom : c'est `enregistrer-echange` qui l'écrit.
 
 - **`Nom complet` ne s'écrit pas.** C'est une formule, calculée à partir du prénom et du nom. C'est aussi le libellé qui s'affichera partout où le contact est lié.
 - **Renseigner `Source`.** C'est ce qui permettra plus tard de mesurer ce qui fonctionne. « Je ne sais plus » est une réponse acceptable, une valeur inventée ne l'est pas.
@@ -102,11 +143,14 @@ createRecords  Contacts
 
 Une phrase pour dire ce qui a été créé. Si le skill a été appelé depuis `enregistrer-echange`, revenir à l'échange à consigner sans faire répéter l'utilisateur.
 
-**La confirmation porte la question.** Si `Email`, `Téléphone` ou `LinkedIn` sont vides, la demande part **avec** la phrase de confirmation, au même endroit que les points tranchés sans certitude, sous la même forme. Ce n'est pas une étape de plus, c'est une puce de plus :
+**La confirmation porte la question.** Si `Email`, `Téléphone` ou `LinkedIn` sont vides, la demande part **avec** la phrase de confirmation, au même endroit que les points tranchés sans certitude, sous la même forme. Ce n'est pas une étape de plus, c'est une puce de plus. **La question de la cible voyage au même endroit**, quand l'organisation vient d'être créée :
 
 > C'est fait : la fiche de Charlotte Le Bedel est créée, rattachée à Perfhomme Rennes, avec l'échange du rendez-vous d'hier.
 > Deux points où j'ai tranché sans certitude : le canal de l'échange est en RDV, dis-moi si c'était plutôt un appel ; le statut de la relation est en En discussion.
+> Perfhomme, c'est le genre de boîte que tu cherches, ou c'est plutôt à côté ? Je le note une fois pour toutes, ça vaudra pour tous leurs contacts.
 > Et il manque ses coordonnées : email, téléphone, profil LinkedIn ? Donne-moi ce que tu as, je complète la fiche.
+
+**Trois puces au maximum, et jamais deux fois la même.** Sur un lot de personnes, la question de la cible se pose **par entreprise**, une seule fois pour toutes celles de la même boîte, et à la fin du lot comme les coordonnées. Cinq contacts chez trois entreprises font trois questions, pas cinq, et pas quinze.
 
 Une question posée dans la même réponse repart avec le reste et obtient une réponse. Une question repoussée à plus tard n'est jamais posée : la fiche reste vide, et personne ne s'en aperçoit avant le jour où il faut relancer.
 
@@ -126,4 +170,6 @@ Une question posée dans la même réponse repart avec le reste et obtient une r
 - **Plusieurs personnes d'un coup** : `createRecords` accepte plusieurs enregistrements en un appel, mais le dédoublonnage se fait pour chacune, et aussi entre elles.
 - **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « vous ne m'avez pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un.
 - **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.
+- **Une organisation créée sans qu'on demande si c'est une cible est une organisation qu'on ne qualifiera jamais.** Personne ne rouvre une fiche pour ça, et le jour où l'utilisateur demande « qui viser cette semaine », elle manquera au comptage sans qu'aucun chiffre ne bouge. La question part avec la confirmation, ou elle ne part pas.
+- **Ne jamais requalifier une organisation qui existait déjà.** Elle a été jugée une fois, par l'utilisateur, peut-être il y a trois mois : une fiche rattachée n'est pas une occasion de rejuger l'entreprise. Le seul cas qui rouvre la question, c'est l'utilisateur qui en parle de lui-même.
 - **Un champ vide se demande, il ne s'abandonne pas.** Créer sans email est normal, conclure sans avoir demandé l'email ne l'est pas. Et la demande vit dans la phrase de confirmation, jamais dans un « on verra plus tard ».
