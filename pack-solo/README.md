@@ -1,77 +1,42 @@
-# Plugin Pack Solo
+# Pack Solo
 
-Unité de duplication du socle Solo : le client installe **un plugin**, pas une collection de fichiers. Il colle ensuite l'URL de son connecteur NoCoDB, et c'est fini.
+**Votre assistant commercial dans Claude.** Il tient votre base à jour pendant que vous travaillez : vous racontez ce qui s'est passé, il consigne, relie et relance. Vous ne remplissez plus de formulaire.
 
-Spécification et raisonnement : [../plugin-pack-solo.md](../plugin-pack-solo.md). Schéma de la base : [../modele-base-nocodb.md](../modele-base-nocodb.md).
+Le Pack Solo est édité par [SenseAct](https://senseact.fr), agence d'automatisation et d'IA pour TPE et PME.
 
-## État au 20 août 2026, plugin en v2.1.0
+## Ce qu'il sait faire
 
-| Skill ou fichier | État |
+Neuf compétences, qui se déclenchent toutes seules quand vous en parlez. Vous n'avez aucun nom à retenir : dites les choses comme vous les diriez à un collègue.
+
+| Quand vous | Il |
 |---|---|
-| `accueil` | Rédigé, **éprouvé et corrigé cinq fois**. Le briefing part sans demander la permission de lire depuis la v1.8.0. **Ne touche pas à la qualification**, délibérément |
-| `enregistrer-echange` | Rédigé, **éprouvé et corrigé**. Porte le bouclage des trois tables, l'avancement du contact depuis la v1.8.0, et **les trois écritures de qualification** depuis la v2.0.0 |
-| `creer-contact` | Rédigé, **éprouvé et corrigé**. Porte la **question de cible** sur une organisation nouvelle depuis la v2.0.0 |
-| `creer-opportunite` | Rédigé, **éprouvé et corrigé** en v1.7.0 puis en v1.8.0, qui lui a coûté quatre défauts sur neuf |
-| `rediger-email` | Rédigé, **éprouvé et corrigé**. L'angle suit le rôle du destinataire depuis la v2.0.0 |
-| `accroche-linkedin` | Rédigé, **éprouvé et corrigé** trois fois, en v1.6.0, v1.7.0 puis v1.8.0 |
-| `import-capture-linkedin` | Rédigé, **éprouvé et corrigé** le 18 août 2026. Qualifie **par entreprise et jamais par personne** depuis la v2.0.0 |
-| `tableau-de-bord` | Rédigé, **éprouvé et corrigé**. **Se sert de la cible quand on la lui demande, et n'en parle jamais de lui-même**, vérifié le 20 août 2026 |
-| `point-strategique` | Rédigé le 17 août 2026, **éprouvé et corrigé** deux fois le 18, puis en v1.8.0. **Éprouvé sur une base sans aucun objectif** le 19 août : il s'arrête au lieu de fabriquer un bilan |
-| `.claude-plugin/plugin.json` | Écrit, installation à blanc jouée |
-| `.mcp.json` | Écrit, connecteur enregistré et substitution vérifiée |
+| ouvrez votre journée, ou dites simplement bonjour | fait le point : relances du jour, réponses à traiter, affaires en cours |
+| racontez un appel, un rendez-vous, un email reçu | consigne l'échange, avance l'affaire, referme ce qui est terminé, arme la relance |
+| parlez d'une personne qu'il ne connaît pas | crée sa fiche et la rattache à son entreprise |
+| évoquez un besoin, un devis, un budget | ouvre l'affaire et suit son étape |
+| voulez écrire à quelqu'un | rédige l'email, au bon angle selon le destinataire |
+| préparez une mise en relation LinkedIn | prépare le message d'accroche personnalisé |
+| lui collez une capture d'écran LinkedIn | met la base à jour à partir de ce qu'il y lit |
+| demandez où vous en êtes | fait le bilan : pipeline, chiffre en cours, retards, affaires dormantes |
+| parlez de vos objectifs | compare le réel à ce que vous vous étiez fixé |
 
-**Le plugin est complet et le parcours commercial a tourné de bout en bout** le 11 août 2026, sur un prospect fictif purgé ensuite. Deux défauts trouvés à cette occasion, corrigés dans les 7 skills d'action : un nom de champ inconnu est ignoré en silence à l'écriture, et un champ de lien ne se met jamais à jour, il ne s'écrit qu'à la création. Détail dans [../plugin-pack-solo.md](../plugin-pack-solo.md), constats 11 et 12.
+**Ce qu'il ne fait jamais :** envoyer un email ou une invitation à votre place, inventer une information qu'il n'a pas, ni écrire quoi que ce soit dans votre base sans que vous l'ayez dit. Il propose, vous décidez.
 
-**Session de test réelle le 18 août 2026, et sept défauts corrigés en v1.5.0.** Sept compétences sur neuf se sont déclenchées juste, et le défaut de fond était ailleurs : **le plugin savait ouvrir du travail et ne savait pas le refermer.** Aucune des neuf ne savait écrire `Statut: Fait`, et aucune ne revenait sur l'étape d'une affaire après un échange. `enregistrer-echange` porte désormais le bouclage, y compris la clôture d'une tâche sans échange à consigner, et `accueil` comme `tableau-de-bord` y renvoient au lieu d'écrire eux-mêmes. Les six autres défauts et leur preuve sont dans [../recette-v1.4.0.md](../recette-v1.4.0.md). Le plus dangereux n'était pas une erreur : une affaire sans `Clôture prévue` ne compte dans aucun bilan, même gagnée, et produit un **zéro crédible**.
+## Ce qu'il vous faut
 
-**Deuxième session de test réelle le 18 août 2026, et cinq défauts corrigés en v1.6.0.** Les sept correctifs de la v1.5.0 tiennent, vérifiés en base. Le défaut de fond de cette passe est un **silence** : « consigne tout cela » n'a rien écrit et rien dit, parce que `accroche-linkedin` n'avait aucune étape de consignation et que le message portait deux ordres dont seul le second a été lu. Elle en a une désormais, étape 6, et `accueil` porte le garde-fou transverse des messages à plusieurs demandes. Les quatre autres : les coordonnées n'étaient demandées sur aucun chemin, un texte à envoyer sortait en citation sans bouton copier, une information donnée dans une réponse se recollait au mauvais nom, et le lien de réservation du client n'était lu par personne. Relevé et preuves dans [../recette-v1.5.0.md](../recette-v1.5.0.md).
+- **Claude Desktop**, avec un abonnement Claude payant. Les plugins y sont réservés.
+- **Votre base NoCoDB**, préparée et livrée par SenseAct. Vos données restent chez vous.
 
-**Troisième session de test réelle le 18 août 2026, et cinq défauts corrigés en v1.7.0.** Les cinq correctifs de la v1.6.0 tiennent, dont le cas du silence rejoué à l'identique : « c'est envoyé » plus une seconde demande, dans le même message et avec une pièce jointe, et les deux ont été exécutées. Le défaut de fond de cette passe n'est plus un silence, c'est une **affirmation fausse** : le briefing d'ouverture a proposé d'envoyer un devis parti dix heures plus tôt, sur une affaire déjà gagnée, en tirant l'action du résumé d'un vieil échange faute d'avoir la moindre ligne à lire. `accueil` lit désormais les affaires ouvertes, ne prescrit plus rien depuis un échange, et porte les règles de comptage et de dates de `tableau-de-bord`. Les quatre autres : le bouclage oubliait la table `Contacts` et armait une fausse relance à date fixe, le montant d'une affaire n'était demandé sur aucun chemin alors que la date de clôture, elle, se proposait, les chiffres dits en prose n'étaient pas recomptés, et le contact créé par `accroche-linkedin` naissait sans l'adresse LinkedIn sur laquelle on venait de l'inviter. Relevé et preuves dans [../recette-v1.6.0.md](../recette-v1.6.0.md).
+## Installer
 
-**Quatrième session de test réelle le 19 août 2026, et neuf défauts corrigés en v1.8.0.** Les cinq correctifs de la v1.7.0 tiennent, et les **trois cas qui traînaient depuis deux versions sont enfin joués** : le lien de réservation sort en clair dans un email, le briefing sur un état vide se tait au lieu de meubler, et le bouclage des trois tables est prouvé sur ses deux branches, `Gagnée` et `Perdue`, la seconde déclenchée par une simple phrase et non par un ordre. Le défaut de fond est de nouveau une **affirmation fausse**, et c'est le même que celui de la v1.7.0 à ceci près qu'il a changé de compétence : réparé dans `accueil`, il est ressorti dans `point-strategique`, qui a conseillé un travail fait vingt-six minutes plus tôt dans la même session. D'où la leçon qui gouverne cette version : **une règle écrite dans une compétence ne protège que cette compétence**, et **une recommandation est une affirmation sur l'état de la base, qui obéit aux mêmes règles qu'un chiffre**. Les huit autres : le briefing demandait la permission de lire et décrivait la plomberie de la base, `accroche-linkedin` créait encore un contact orphelin malgré la règle écrite en v1.6.0, d'où un **arrêt** à la place d'une consigne, une affaire close gardait sa date de clôture prévisionnelle et faussait deux bilans mensuels, un compteur de liens annonçait deux tâches ouvertes là où une seule l'était, `Statut relation` ne basculait pas sur un premier échange sortant faute d'affaire pour déclencher le bouclage, une affaire naissait sans date de clôture sans qu'aucun bilan ne le dise, le tiret cadratin ressortait dans une phrase de conversation, et la clôture ne consignait pas l'échange qui l'avait provoquée. Relevé et preuves dans [../recette-v1.7.0.md](../recette-v1.7.0.md).
+Vous recevez de SenseAct une **archive préparée pour vous**, déjà réglée sur votre base. Dans Claude Desktop : `Customize`, onglet `Plugins`, téléverser l'archive, activer.
 
-**Cinquième session de test réelle le 19 août 2026, et trois défauts mineurs corrigés en v1.9.0.** Une seule situation cette fois, la dernière que le test en aveugle n'avait jamais jouée : `point-strategique` sur une base qui ne porte **aucun objectif en cours**, obtenue par neutralisation réversible de la base de référence et restaurée dans la foulée. **Le cas passe, et c'est la première séance sans aucun défaut grave.** La compétence ne s'est pas rabattue sur un bilan d'activité, n'a inventé aucune cible, s'est arrêtée où il fallait, et a sorti presque mot pour mot la phrase attendue : « vous ne m'avez pas donné de cible, je ne peux donc pas vous dire si vous êtes dans les clous. » Les trois défauts sont mineurs et aucun ne touche la justesse d'une réponse. Deux ont la même racine, **la compétence a parlé la langue de la base au lieu de celle du dirigeant** : « la table Objectifs ne contient aucun objectif actif ("En cours") » cite trois fois le schéma à quelqu'un qui n'est pas censé savoir qu'il y en a un, et « dites-moi l'objectif, l'indicateur visé, la cible chiffrée et la période » récite les quatre colonnes de la table au lieu de poser une question. Le troisième est un appel refusé puis rejoué, `table` au lieu de `tableId`, échec bruyant sans conséquence mais dont la cause est chez nous : nos fiches nommaient la table et jamais la clé qui la reçoit. **Les trois correctifs sont transverses et recopiés à l'identique dans les neuf compétences**, sauf « une question, pas quatre » qui n'appartient qu'à `point-strategique`. Relevé et preuves dans [../recette-v1.8.0.md](../recette-v1.8.0.md).
+Puis ouvrez une session et dites simplement bonjour. L'assistant doit vous répondre par le point du jour, lu dans votre base. Si rien ne se passe, vérifiez que le plugin est bien activé et rappelez-nous.
 
-**La v2.0.0 passe sa recette le 20 août 2026, et en sort en v2.1.0.** Neuf demandes jouées d'affilée dans Claude Desktop, dans l'ordre prescrit par [../eprouver-le-declenchement.md](../eprouver-le-declenchement.md) : **sept déclenchements justes, deux muets, aucun faux**. Les deux muets ont produit le bon résultat sans qu'aucune compétence se charge, et le cas dur de la contradiction passe : une affaire ouverte chez une entreprise écartée est signalée, l'utilisateur ne reclasse pas, **rien ne s'écrit**. Quatre défauts en sortent, tous de registre, aucun de justesse. **Trois sont corrigés ici.** Le nom d'une compétence a été dit au client, « je peux m'en occuper avec toi via `creer-opportunite` » : la règle du vocabulaire de la base gagne une clause, les rouages ne se nomment pas. Le tutoiement et le vouvoiement alternaient d'une compétence à l'autre et parfois dans le même message : **les neuf tutoient l'utilisateur, toujours**, et `Comment je parle` ne règle plus que le ton de ce qui sort vers un tiers. Et `Pourquoi eux` change de définition : il ne porte plus « l'argument d'affaires » mais **pourquoi cette entreprise est dans la base**, avec la raison de sa sortie ajoutée à la suite le jour où on l'écarte, jamais à la place. Le quatrième défaut ne se corrige pas dans une compétence, il est écrit plus bas. Relevé et captures dans [../recette-v2.0.0.md](../recette-v2.0.0.md).
+> **L'adresse de votre base tient lieu de mot de passe.** Elle est déjà dans l'archive, vous n'avez rien à saisir. Ne la partagez pas, ne la montrez pas en partage d'écran, et ne transmettez pas l'archive à un tiers : elle donne accès à vos données.
 
-**Ce que cette passe a appris, et qu'aucune règle ne rattrape.** Sur deux des neuf demandes, **aucune compétence ne s'est chargée** : le modèle a lu la base et écrit juste, par le connecteur seul. Le résultat était bon, mais **aucune de nos règles n'était en contexte**, et c'est là que trois tirets cadratins sont sortis, dans la seule réponse du lot qui en porte. Une règle écrite dans une compétence ne protège que cette compétence, et hors compétence elle ne protège rien du tout. Le plugin n'a aucun fichier d'instruction permanent où la poser : c'est une **limite de forme du produit**, pas un défaut d'une fiche, et elle reste ouverte.
+## Une question, un problème
 
-**Sept compétences apprennent à qualifier, le 20 août 2026, et c'est la v2.0.0.** Les quatre champs posés en base le 17 août, `Correspondance cible` et `Pourquoi eux` sur l'organisation, `Rôle dans la décision` et `Priorité` sur le contact, n'étaient lus ni écrits par personne : c'était le périmètre choisi ce jour-là, et il fallait le refermer avant le premier client, sans quoi ces champs n'auraient été que des colonnes de plus à remplir à la main.
+**contact@senseact.fr** · [senseact.fr](https://senseact.fr)
 
-**Aucune dixième compétence, et aucune situation de plus au cheat-sheet.** C'était le test que ce chantier devait passer : la qualification s'attache aux quatre moments où l'utilisateur a déjà la réponse en tête, elle ne crée pas de moment à elle. On demande si une entreprise est une cible **quand on vient de la créer**, une fois par entreprise et jamais par personne ; on écrit ce qu'un échange vient d'apprendre **à la fin d'un rendez-vous ou d'un appel**, jamais après un email de prospection ; on qualifie un import **par lot d'entreprises**, en une question ; et on lit tout cela dans `point-strategique`, `accroche-linkedin` et `rediger-email` pour choisir l'angle ou nommer le vivier qui reste.
-
-**`accueil` et `tableau-de-bord` n'y touchent pas, et c'est le choix qui tient le reste debout.** Ce sont les deux compétences qui parlent au client sans qu'il ait rien demandé : un briefing du matin qui rappelle chaque jour les fiches non qualifiées devient un reproche quotidien, et le client cesse de l'ouvrir.
-
-**Trois règles transverses sont venues avec, recopiées à l'identique dans les sept**, sous le titre « Les quatre repères de qualification » : rien ne s'écrit sans un mot de l'utilisateur, vide et « à qualifier » ne disent pas la même chose, et ces mots se disent en français jamais en nom de champ. Un **constat d'appel** nouveau les accompagne, le dix-neuvième, posé dans les neuf : **un filtre ne traverse pas un lien**, d'où la lecture du vivier en deux appels. Enfin `Contacts.Étiquettes`, recouvert depuis la v1.4, est **retiré** : schéma en v1.6, colonne supprimée sur la base de référence, 0 valeur perdue.
-
-**Neuvième compétence ajoutée le 17 août 2026**, `point-strategique`, avec le passage du schéma en v1.3 : deux tables de cadrage, `Contexte` et `Objectifs`. Quatre compétences lisent désormais le contexte du client une fois par session, et `point-strategique` compare les objectifs au réel **sans jamais combler un objectif absent**. Sa frontière avec `tableau-de-bord` a été écrite avant elle : [../eprouver-le-declenchement.md](../eprouver-le-declenchement.md).
-
-**Une question ouverte est fermée par cette passe :** `updateRecords` **accepte une valeur nulle** sur `Contacts.Prochaine relance`, vérifié le 19 août 2026 aux deux bouts du cycle. La consigne de repli qui prévoyait un refus du connecteur est sortie de `enregistrer-echange`.
-
-Restent hors du plugin : le cheat-sheet client et le canal de mise à jour.
-
-Chacun est déclenchable directement ou depuis `accueil`. Les trois premiers forment la chaîne minimale : ouvrir sa journée, consigner un échange, faire entrer une personne inconnue.
-
-Chaque skill d'action rappelle en tête le même bloc « Conventions d'appel de la base ». **C'est volontaire** : un skill se charge seul, sans garantie qu'un autre soit en contexte. La duplication est le prix de l'autonomie. Si ce bloc change, il change dans les huit. **Le bloc « Le contexte du client, lu une fois par session » est le second bloc délibérément dupliqué**, depuis le 17 août 2026, dans quatre skills seulement : `accueil`, `accroche-linkedin`, `rediger-email` et `creer-opportunite`. Il lit **dix champs** depuis la v1.6.0, `Lien de réservation` compris : deux skills seulement s'en servent, et les quatre le lisent, sans quoi le premier appelé priverait les suivants du champ pour toute la session.
-
-## Règles qui gouvernent ce dossier
-
-- **Aucun identifiant de table en dur.** Les identifiants changent d'une base client à l'autre : chaque skill les résout par `getTablesList`, une fois par session.
-- **Aucun secret ici, ni dans aucun fichier de configuration.** L'URL du connecteur est demandée au client à l'activation, par le `userConfig` marqué `sensitive` du manifeste, et rangée dans le **Trousseau macOS**. Le `.mcp.json` n'en porte que la substitution, `${user_config.url_connecteur_nocodb}`. Cette URL tient lieu de mot de passe de la base : elle ne doit apparaître ni dans le dépôt, ni dans un partage d'écran, ni dans une conversation.
-- **`accueil` ne contient jamais de procédure.** Il oriente et cite les autres skills par leur nom.
-- **Aucune procédure d'appel MCP écrite sans aller-retour réel** sur l'outil concerné, contre la base de référence « Pack solo ». Les constats observés sont consignés dans [../plugin-pack-solo.md](../plugin-pack-solo.md).
-
-## Installer chez un client
-
-Le plugin s'installe depuis un marché, pas par copie de fichiers. **Chez un client, il ne s'installe pas depuis ce marché** : vérifié le 12 août 2026, l'application Claude refuse une forge auto-hébergée comme source. Le client reçoit une **archive fabriquée pour lui** par `../construire-livraison.sh --client <nom>`, et la téléverse. Ce marché sert au poste de SenseAct et à la ligne de commande.
-
-La cible client est **Claude Desktop**, où Chat et Cowork sont deux positions d'une bascule du composeur : `Customize`, onglet `Plugins`, ajouter le marché par son dépôt git, puis installer. La procédure en ligne de commande ci-dessous est celle du poste de SenseAct, et sert de recette de contrôle.
-
-1. `claude plugin marketplace add <le marché>`
-2. `claude plugin install pack-solo@<le marché>`, ou l'installer depuis `/plugin` dans l'application.
-3. À l'activation, **l'URL du connecteur NoCoDB** de ce client est demandée. C'est le seul geste de configuration. Éprouvé en ligne de commande, **pas encore dans l'onglet Plugins de l'application** : voir [../plugin-pack-solo.md](../plugin-pack-solo.md), section « Où le plugin s'installe ».
-4. Vérifier : `claude plugin details pack-solo` doit annoncer 9 skills et 1 serveur MCP, et `claude mcp list` doit joindre `plugin:pack-solo:nocodb`.
-
-> **`claude mcp list` affiche l'URL du connecteur en clair.** Ne pas la lancer en partage d'écran, ni dans une session dont la transcription est conservée. `claude plugin details` suffit pour la vérification courante, et ne montre rien de sensible.
-
-Puis ouvrir une session et dire simplement bonjour : `accueil` doit se déclencher seul et lire la base.
+Votre aide-mémoire, « Les 11 phrases qui suffisent », vous a été remis à la mise en main. Tout y est.
