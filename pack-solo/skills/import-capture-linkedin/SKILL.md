@@ -36,6 +36,7 @@ Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisatio
 - **`Pourquoi eux` porte l'histoire, pas l'état du moment.** Il dit d'abord **pourquoi cette entreprise est entrée dans la base** : ce qui, chez eux, appelle l'offre. Le jour où elle en sort, où elle passe hors cible, **la raison de la sortie s'ajoute à la ligne d'entrée, elle ne la remplace pas** : « trois devis par semaine tapés à la main, veulent industrialiser », puis « écartés le 20 août, ce qu'ils cherchent est trop loin de ce que je fais ». Une entreprise mise de côté sans raison écrite est un travail qu'on refera dans six mois, faute de se souvenir pourquoi on avait dit non. Le test du droit d'accès vaut sur la ligne de sortie comme sur celle d'entrée : une raison d'affaires s'écrit, un jugement sur les gens ne s'écrit pas.
 - **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment ta cible », « c'est lui qui décide », « celle-là, tu la mets de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
 - **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
+- **Un nom d'entreprise sous-entendu ne se résout jamais tout seul avant une écriture.** Quand une phrase désigne une entreprise par « l'entreprise », « la boîte », « chez eux », « leur », et que **deux organisations au moins** sont candidates dans la phrase ou dans la conversation, on **s'arrête et on demande laquelle** avant tout appel d'écriture. La personne nommée dans la phrase est le candidat le plus probable, jamais le sujet du tour précédent, mais la probabilité ne suffit pas ici : une organisation reclassée à tort porte une raison écrite qui rend le classement crédible, et personne ne rouvrira la fiche. « Après discussion avec Nicolas Betton, l'entreprise a déjà un CRM » parle de l'entreprise **de Nicolas Betton**, pas de celle dont on parlait il y a deux phrases. Dans le doute, une question de cinq mots : « chez Perfhomme, c'est ça ? »
 
 ---
 
@@ -70,7 +71,7 @@ Sur une capture d'une dizaine de lignes, regrouper les recherches plutôt que d'
 
 ### 3. Afficher le tableau de contrôle. Étape obligatoire
 
-Avant toute écriture, montrer ce qui va se passer, en trois blocs :
+Avant toute écriture, montrer ce qui va se passer, en trois blocs. **Les cinq colonnes ci-dessous sont obligatoires, `Cible` comprise** : un tableau à quatre colonnes n'est pas ce tableau-là.
 
 | | Personne | Organisation | Cible | Décision |
 |---|---|---|---|---|
@@ -78,7 +79,7 @@ Avant toute écriture, montrer ce qui va se passer, en trois blocs :
 | À compléter | Pierre Autret | Super Super | Cœur de cible, déjà su | Fonction manquante, sera ajoutée |
 | Doublon probable | M. Legoff | Odyssee 29 | à demander | Même personne que Marie Le Goff ? |
 
-**La colonne « Cible » se remplit toute seule, elle ne se demande pas ici.** Elle affiche ce que la base sait déjà de l'organisation, lu à l'étape 2, et « à demander » pour celles qu'on va créer. Elle sert à montrer d'un coup d'oeil combien de questions vont arriver à l'étape suivante, et sur quelles entreprises. Une organisation déjà qualifiée ne se requalifie pas.
+**La colonne « Cible » se remplit toute seule, elle ne se demande pas ici, et elle ne se supprime pas.** Elle affiche ce que la base sait déjà de l'organisation, lu à l'étape 2, et « à demander » pour celles qu'on va créer. Deux valeurs possibles, pas trois : ce que la base porte déjà, ou « à demander ». Elle sert à montrer d'un coup d'oeil **combien de questions vont arriver à l'étape suivante, et sur quelles entreprises** : c'est le seul endroit du parcours où l'utilisateur voit venir la charge avant qu'elle ne tombe. Sur trois profils elle ne coûte rien, sur vingt elle fait la différence entre un tableau qui prépare et un tableau qui décrit. Une organisation déjà qualifiée ne se requalifie pas.
 
 **N'écrire qu'après validation explicite.** La lecture d'image se trompe sur les noms rares, les particules et les accents, et une base polluée ne se nettoie jamais. Cette étape n'est pas une politesse, c'est le garde-fou du skill.
 
@@ -92,7 +93,9 @@ Isoler les personnes dont la capture ne montre aucune entreprise, et **poser une
 
 **La question de la cible voyage dans la même phrase, par entreprise et jamais par personne.** Les organisations nouvelles se listent groupées, et l'utilisateur répond en une ligne :
 
-> Et pour ces quatre boîtes nouvelles : Odyssée 29, CLR Location, SARL L.B.G.E, Perfhomme. Lesquelles sont vraiment ce que tu cherches, lesquelles sont à côté ? Un mot par boîte me suffit, je le note une fois pour toutes.
+> Et pour ces quatre boîtes nouvelles : Odyssée 29, CLR Location, SARL L.B.G.E, Perfhomme. Qu'est-ce qui te les fait mettre là, chez chacune ? Un mot par boîte me suffit, je le note une fois pour toutes.
+
+**Ici aussi, on demande *en quoi* et jamais *si*.** Quelqu'un qui importe une liste de relations a déjà fait son tri en la capturant : « lesquelles sont vraiment ce que tu cherches ? » a une réponse par défaut et ne rapporte qu'un classement. La question ouverte rapporte le classement **et** la raison, dans le même mot. **Mais elle garde son plafond** : un mot par boîte suffit, et rien ne se réclame. Sur un lot de vingt, une question ouverte à laquelle on exigerait une phrase serait le formulaire que ce mode existe pour éviter.
 
 **Quand il écarte une boîte et dit pourquoi, la raison s'écrit.** C'est la seule chose qu'un import mette dans `Pourquoi eux` : « à côté, ils ne font que du bâtiment » suffit et se note tel quel, à la suite de ce qui s'y trouve déjà. Un « à côté » sans explication s'écrit seul, sans rien réclamer : sur un lot de vingt, réclamer une raison par boîte transforme une question d'une ligne en interrogatoire.
 
@@ -103,6 +106,8 @@ Quand l'utilisateur ne trie qu'une partie du lot, écrire ce qu'il a dit et **la
 **Viser `LinkedIn` en premier.** C'est le seul des trois champs qu'un parcours LinkedIn peut plausiblement remplir : l'adresse est dans la barre du navigateur de la page dont l'utilisateur vient de faire la capture. `Email` et `Téléphone` se prennent s'ils viennent, ils ne se réclament pas ligne à ligne.
 
 **Quand aucune organisation ne manque, la question se pose quand même**, sur les seules coordonnées. C'est le seul moment du parcours où elles sont demandées : personne ne les redemandera plus tard, et une fiche sans coordonnée ne se relance pas.
+
+> **Un lot ne pose qu'un seul tour de questions, et c'est celui-ci.** Organisations manquantes, coordonnées et cible partent **dans la même réponse**, quel que soit le nombre de sujets, et on attend une seule fois. Trois tours d'affilée, l'organisation d'untel, puis la cible, puis les profils LinkedIn, c'est un formulaire : chaque aller-retour est une occasion d'abandonner, et découper en trois ce qui tient en un transforme un import de vingt personnes en interrogatoire. C'est exactement ce que le mode lot existe pour éviter. **Une question de plus après coup se pose seulement si la réponse en a ouvert une**, jamais parce qu'on avait gardé un sujet pour après.
 
 Puis écrire, avec ce que l'utilisateur a donné.
 
@@ -118,6 +123,8 @@ Puis **réafficher les seules lignes modifiées** du tableau de contrôle, avec 
 | Retenu | Fabrice Gérard | CLR Location | Chargé d'affaires |
 
 **Le piège est l'attribution, pas la lecture.** Une fonction citée dans une phrase qui nomme deux personnes se recolle au mauvais nom quand elle figurait déjà à côté de l'autre dans le tableau. Deux lignes réaffichées coûtent une seconde de lecture, et c'est le seul endroit où l'erreur se voit avant d'être en base.
+
+> **Ce réaffichage est un arrêt, pas une politesse : tant que les lignes modifiées ne sont pas réaffichées, aucun appel d'écriture ne part.** Il ne demande pas de nouvelle validation, il se lit dans la même réponse que l'écriture, mais il s'affiche. Le risque est le plus fort exactement là où la réponse de l'utilisateur a été riche, une fonction, une entreprise et trois adresses de profil en vrac dans un ordre différent de celui du tableau, c'est-à-dire au moment où l'on se sent le plus sûr d'avoir compris.
 
 > **Un contact créé sans organisation ne se rattache jamais depuis l'assistant.** Sur un import, l'absence d'organisation sur la capture n'est pas une réponse : c'est ce que LinkedIn affiche, pas ce que l'utilisateur sait. Demander pour tout le lot en une fois, accepter « je ne sais pas » et le dire, et ne laisser le lien vide que là. Un indépendant qui facture à son nom prend une organisation à son nom.
 
@@ -219,7 +226,8 @@ Un compte rendu court : combien créés, combien complétés, combien écartés 
 - **Une fiche sans coordonnée est une fiche qu'on ne relancera pas.** L'absence d'email sur une capture n'est pas une absence d'email : c'est ce que LinkedIn affiche, pas ce que l'utilisateur sait. Une question pour le lot, jamais une par personne, jamais aucune.
 - **Une réponse de l'utilisateur se lit en entier, et se réaffiche avant d'écrire.** Ce qui dépasse la question posée s'écrit aussi, à condition de le montrer sur la ligne de la bonne personne.
 - **Une date vient de la capture ou du jour de l'import**, jamais d'une impression de fraîcheur. Et la raison donnée à l'utilisateur doit être la vraie : « la capture indique le 17 août », pas « les connexions semblent récentes ».
-- **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « tu ne m'as pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un.
+- **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « tu ne m'as pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un. **Les guillemets sont le signal, pas le mot.** « Il passe à « à contacter » » cite la base ; « il est maintenant dans ceux que tu dois contacter » dit la même chose. Une valeur de liste qui se lit bien en français se **traduit** quand même : c'est de la citer qui trahit, pas de la comprendre.
 - **Le nom d'une compétence ne sort pas davantage.** Jamais « je peux m'en occuper via `creer-opportunite` », jamais `pack-solo:` quoi que ce soit, jamais « je vais utiliser la compétence qui… ». Ce sont des rouages, et le client n'a pas acheté des rouages : il a acheté que ça se fasse. On annonce **ce qu'on va faire**, « je peux ouvrir l'affaire avec toi », jamais avec quoi on le fait. Même famille que la règle du dessus, même raison : nommer la mécanique apprend qu'il y a une mécanique à connaître.
+- **Rien de la mécanique ne se dit à l'utilisateur, y compris quand elle coince.** Ni le nom d'un outil du connecteur, ni un repli technique, ni une remarque sur la mémoire : « pas d'outil de comptage disponible, je passe par autre chose » n'a rien à faire dans une conversation. Un outil manquant se contourne **en silence** ; seule une base **injoignable** se dit, dans les phrases déjà prévues pour ça. Et **tout ce qui s'adresse à l'utilisateur s'écrit en français**, y compris une simple phrase de transition : une incise en anglais au milieu d'un travail montre la couture, et elle amène le tiret cadratin avec elle.
 - **On tutoie l'utilisateur, dans les neuf compétences, toujours.** Pas de vouvoiement, pas d'alternance d'une compétence à l'autre : rien ne trahit plus vite un assemblage de morceaux qu'un assistant qui change de registre au milieu d'une séance. `Comment je parle` ne décide que du ton de ce qui **sort vers un tiers**, un email ou une accroche, et ne change rien à la façon de s'adresser à l'utilisateur.
 - **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.
