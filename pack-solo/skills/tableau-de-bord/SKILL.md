@@ -20,6 +20,8 @@ Le quotidien n'est pas ici : les relances du jour, les réponses reçues et les 
 - **Résoudre les identifiants de table avec `getTablesList`, une fois par session.** Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
 - **Le paramètre qui porte la table s'appelle `tableId`, jamais `table`.** Un appel juste sur tout le reste, filtre, `fields` et tri compris, échoue **en entier** sur `MCP error -32602: Input validation error`, avec `"path": ["tableId"], "message": "Required"`. Les appels écrits plus bas nomment la table en clair pour se lire, c'est la clé `tableId` qui la reçoit.
 - **Les noms de champs s'écrivent exactement comme dans la base, accents compris.** En lecture, un nom inconnu échoue bruyamment : `Column alias 'Echeance' not found.` **En écriture, il est ignoré en silence** : les autres champs passent, celui-là reste vide, et rien ne le signale.
+- **`Dernier échange` et `Étape depuis` ressemblent à des champs calculés, et ce sont des champs que les compétences écrivent.** `Contacts.Dernier échange` porte la date du dernier échange consigné, `Opportunités.Étape depuis` la date du dernier changement d'étape. **La base ne les remplit pas** : le schéma v1.8 les voulait en rollup, l'instance ne le permet pas, la fonction `max` d'un rollup y étant réservée à un plan payant. Deux conséquences, et aucune n'est facultative : **toute écriture d'un échange réécrit `Dernier échange`**, toute écriture de `Étape` réécrit `Étape depuis`, dans le même appel et à la date de l'événement, pas à celle de la saisie ; et **une valeur vide veut dire « jamais écrit », pas « jamais d'échange »**, donc un filtre `lt` sur ces champs rend une liste incomplète tant que le parc n'est pas repassé une fois.
+- **`Ouverte` dit si une tâche ou une affaire est en cours, et il se lit avec `eq`, jamais avec `in`.** C'est une colonne **calculée par la base** : elle vaut `1` tant qu'une tâche n'est ni `Fait` ni `Annulée`, et `1` tant qu'une affaire n'est ni `Gagnée` ni `Perdue`. Elle remplace depuis le schéma v1.8 les filtres par énumération, `(Statut,in,À faire,En cours)` et `(Étape,in,Identifiée,Contactée,RDV,Proposition)`, qui se mettaient à mentir en silence dès qu'une valeur était ajoutée à la liste. **Deux règles vont avec, et aucune n'est facultative :** l'opérateur `in` échoue bruyamment sur une colonne calculée, `(Ouverte,in,1)` compris, donc `(Ouverte,eq,1)` est la seule forme valide ; et **`Ouverte` ne s'écrit jamais**, c'est `Statut` ou `Étape` qu'on écrit, la base recalcule.
 - **Relire l'enregistrement renvoyé après chaque écriture.** C'est le seul garde-fou contre une faute de frappe sur un nom de champ, et il ne coûte aucun appel : la réponse contient déjà l'enregistrement complet.
 - **Ce qui s'annonce à l'utilisateur se lit sur l'enregistrement relu, jamais sur l'appel envoyé.** Un champ ne se nomme dans une phrase de confirmation qu'après être revenu **rempli** dans la réponse. Le 25 août 2026, « Frères Boyer est classée cœur de cible avec sa raison » a été dit à l'écran alors que le champ est resté vide, et la compétence de bilan a compté une entreprise classée de trop quarante minutes plus tard. **Un champ annoncé et absent est pire qu'un champ absent** : il éteint la seule vérification que l'utilisateur pouvait faire, et le mensonge se propage ensuite dans les chiffres.
 - **Les dates s'écrivent `AAAA-MM-JJ`.**
@@ -54,7 +56,7 @@ aggregate  Opportunités
     { field: "<id de Nom>",             type: "count_filled" }
   ]
   filterGroups = [
-    { alias: "en_cours",    where: "(Étape,in,Identifiée,Contactée,RDV,Proposition)" },
+    { alias: "en_cours",    where: "(Ouverte,eq,1)" },
     { alias: "proposition", where: "(Étape,eq,Proposition)" },
     { alias: "gagnees",     where: "(Étape,eq,Gagnée)~and(Clôture prévue,isWithin,pastNumberOfDays,30)" },
     { alias: "perdues",     where: "(Étape,eq,Perdue)~and(Clôture prévue,isWithin,pastNumberOfDays,30)" },
@@ -87,7 +89,7 @@ Gagnées et perdues, filtrées sur `Clôture prévue`. Toujours **les deux**, ja
 **Puisque ce bloc filtre sur `Clôture prévue`, compter aussi ce qu'il ne verra jamais :**
 
 ```
-countRecords  Opportunités  where=(Étape,in,Identifiée,Contactée,RDV,Proposition)~and(Clôture prévue,blank)
+countRecords  Opportunités  where=(Ouverte,eq,1)~and(Clôture prévue,blank)
 ```
 
 **Ce comptage n'est pas facultatif, et il ne va pas dans les commentaires : il fait partie du bloc 2.** Dès qu'il est supérieur à zéro, il se dit, en une ligne : « deux affaires en cours n'ont pas de date de clôture prévue, elles ne compteront dans aucun bilan tant qu'elle manque. » Le 19 août 2026, l'appel a été fait, le résultat n'a pas été dit, et une affaire à 4 000 € est restée invisible. Ces affaires-là seraient signées demain sans rien apporter au chiffre du mois, et rien ne le signalerait : le bilan resterait juste au sens du calcul et faux au sens du réel. **Un trou de mesure se signale, il ne se comble pas tout seul** : la date se pose dans `creer-opportunite`, qui la propose à toutes les étapes.
@@ -96,8 +98,8 @@ countRecords  Opportunités  where=(Étape,in,Identifiée,Contactée,RDV,Proposi
 **Deux jumeaux, comptés dans le même bloc et soumis à la même obligation :**
 
 ```
-countRecords  Opportunités  where=(Étape,in,Identifiée,Contactée,RDV,Proposition)~and(Montant estimé,blank)
-countRecords  Opportunités  where=(Étape,in,Identifiée,Contactée,RDV,Proposition)~and(Clôture prévue,lt,today)
+countRecords  Opportunités  where=(Ouverte,eq,1)~and(Montant estimé,blank)
+countRecords  Opportunités  where=(Ouverte,eq,1)~and(Clôture prévue,lt,today)
 ```
 
 **Ces deux comptages ne sont pas facultatifs et ils ne vont pas dans les commentaires.** Dès que l'un est supérieur à zéro, il se dit, en une ligne :
@@ -125,7 +127,7 @@ Le rapport entrant sur sortant dit si la prospection prend. Adapter la fenêtre 
 ### 4. Ce qui traîne
 
 ```
-countRecords  Tâches    where=(Statut,in,À faire,En cours)~and(Échéance,lt,today)
+countRecords  Tâches    where=(Ouverte,eq,1)~and(Échéance,lt,today)
 countRecords  Contacts  where=(Prochaine relance,lt,today)
 ```
 
@@ -138,20 +140,29 @@ Deux cas, dans cet ordre.
 **Jamais d'échange.** Le champ `Échanges` d'une opportunité est un compteur de liens, filtrable directement, et il survit à `fields`. **La borne d'âge n'est pas facultative** : une affaire ouverte aujourd'hui n'a évidemment aucun échange, et ce zéro-là ne dit rien.
 
 ```
-queryRecords  Opportunités  where=(Étape,in,Identifiée,Contactée,RDV,Proposition)~and(Échanges,eq,0)~and(CreatedAt,lt,daysAgo,7)
+queryRecords  Opportunités  where=(Ouverte,eq,1)~and(Échanges,eq,0)~and(CreatedAt,lt,daysAgo,7)
                             fields=["Nom","Étape","Échanges"]
 ```
 
 **Une affaire n'est dormante qu'après un délai.** En dessous de sept jours, le zéro dit qu'elle vient de naître, pas qu'elle coince. La présenter comme « ce qui coince » est un reproche adressé à un travail qu'on vient de faire, et c'est la façon la plus rapide de rendre un bilan inutile. Si l'utilisateur s'étonne de ne pas y voir une affaire toute neuve, le dire en une phrase : « elle est trop récente pour que ça veuille dire quelque chose ».
-**Plus d'échange depuis longtemps.** NoCoDB ne sait pas filtrer sur « date du dernier échange lié ». La reconstruire en deux appels :
+**Plus d'échange depuis longtemps.** NoCoDB ne sait pas filtrer sur « date du dernier échange lié », et l'instance ne peut pas la calculer non plus : la fonction `max` d'un rollup y est réservée à un plan payant. **Sur une affaire, elle se reconstruit donc en deux appels.**
 
 ```
-queryRecords  Opportunités  where=(Étape,in,Identifiée,Contactée,RDV,Proposition)
+queryRecords  Opportunités  where=(Ouverte,eq,1)
 queryRecords  Échanges      where=(Date,isWithin,pastNumberOfDays,30)~and(Opportunité,notblank)
                             sort=[{"field": "Date", "description": "desc"}]  pageSize=100
 ```
 
 Les affaires en cours qui n'apparaissent dans aucun de ces échanges sont les dormantes. Ne pas passer `fields` sur le second appel : c'est le libellé de l'opportunité liée qui permet le rapprochement, et il disparaît dès qu'on filtre les champs.
+
+**Sur une personne, un seul appel suffit, et c'est nouveau.** `Contacts.Dernier échange` porte la date, écrite par les compétences à chaque échange consigné. Ne pas reconstruire ici ce qui est déjà dans un champ.
+
+```
+queryRecords  Contacts  where=(Statut relation,in,En discussion,Client)~and(Dernier échange,lt,daysAgo,45)
+                        fields=["Nom complet","Statut relation","Dernier échange"]
+```
+
+> **Un contact sans `Dernier échange` du tout ne sort pas de ce filtre, et ce n'est pas un contact frais.** Le champ n'existe que depuis le 31 août 2026 : tout ce qui a été consigné avant est vide, et un `lt` ne retient jamais une valeur vide. Les vieux dossiers silencieux passeront donc à travers pendant quelques semaines, le temps que chacun repasse par un échange. **Le dire une fois si l'utilisateur s'étonne d'une liste courte**, ne pas en faire un avertissement permanent, et ne surtout pas combler le trou en écrivant une date de dernier échange qu'aucun échange ne porte.
 
 ---
 

@@ -16,10 +16,12 @@ Appelé directement, ou depuis `enregistrer-echange` quand le récit décrit une
 - **Résoudre les identifiants de table avec `getTablesList`, une fois par session.** Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
 - **Le paramètre qui porte la table s'appelle `tableId`, jamais `table`.** Un appel juste sur tout le reste, filtre, `fields` et tri compris, échoue **en entier** sur `MCP error -32602: Input validation error`, avec `"path": ["tableId"], "message": "Required"`. Les appels écrits plus bas nomment la table en clair pour se lire, c'est la clé `tableId` qui la reçoit.
 - **Les noms de champs s'écrivent exactement comme dans la base, accents compris.** En lecture, un nom inconnu échoue bruyamment : `Column alias 'Echeance' not found.` **En écriture, il est ignoré en silence** : les autres champs passent, celui-là reste vide, et rien ne le signale.
+- **`Dernier échange` et `Étape depuis` ressemblent à des champs calculés, et ce sont des champs que les compétences écrivent.** `Contacts.Dernier échange` porte la date du dernier échange consigné, `Opportunités.Étape depuis` la date du dernier changement d'étape. **La base ne les remplit pas** : le schéma v1.8 les voulait en rollup, l'instance ne le permet pas, la fonction `max` d'un rollup y étant réservée à un plan payant. Deux conséquences, et aucune n'est facultative : **toute écriture d'un échange réécrit `Dernier échange`**, toute écriture de `Étape` réécrit `Étape depuis`, dans le même appel et à la date de l'événement, pas à celle de la saisie ; et **une valeur vide veut dire « jamais écrit », pas « jamais d'échange »**, donc un filtre `lt` sur ces champs rend une liste incomplète tant que le parc n'est pas repassé une fois.
+- **`Ouverte` dit si une tâche ou une affaire est en cours, et il se lit avec `eq`, jamais avec `in`.** C'est une colonne **calculée par la base** : elle vaut `1` tant qu'une tâche n'est ni `Fait` ni `Annulée`, et `1` tant qu'une affaire n'est ni `Gagnée` ni `Perdue`. Elle remplace depuis le schéma v1.8 les filtres par énumération, `(Statut,in,À faire,En cours)` et `(Étape,in,Identifiée,Contactée,RDV,Proposition)`, qui se mettaient à mentir en silence dès qu'une valeur était ajoutée à la liste. **Deux règles vont avec, et aucune n'est facultative :** l'opérateur `in` échoue bruyamment sur une colonne calculée, `(Ouverte,in,1)` compris, donc `(Ouverte,eq,1)` est la seule forme valide ; et **`Ouverte` ne s'écrit jamais**, c'est `Statut` ou `Étape` qu'on écrit, la base recalcule.
 - **Relire l'enregistrement renvoyé après chaque écriture.** C'est le seul garde-fou contre une faute de frappe sur un nom de champ, et il ne coûte aucun appel : la réponse contient déjà l'enregistrement complet.
 - **Ce qui s'annonce à l'utilisateur se lit sur l'enregistrement relu, jamais sur l'appel envoyé.** Un champ ne se nomme dans une phrase de confirmation qu'après être revenu **rempli** dans la réponse. Le 25 août 2026, « Frères Boyer est classée cœur de cible avec sa raison » a été dit à l'écran alors que le champ est resté vide, et la compétence de bilan a compté une entreprise classée de trop quarante minutes plus tard. **Un champ annoncé et absent est pire qu'un champ absent** : il éteint la seule vérification que l'utilisateur pouvait faire, et le mensonge se propage ensuite dans les chiffres.
 - **Les dates s'écrivent `AAAA-MM-JJ`.**
-- **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien, et seulement à la création.** `updateRecords` sur un champ de lien échoue toujours, quelle que soit la forme employée : c'est une limite du connecteur, pas une erreur de syntaxe. **Conséquence : créer dans l'ordre.** Un enregistrement créé sans son lien ne peut plus être rattaché depuis l'assistant.
+- **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien à la création, et par sa colonne de clé étrangère ensuite.** `updateRecords` sur un **champ de lien** échoue toujours, quelle que soit la forme employée, sur `SQLITE_ERROR: near "(": syntax error` : c'est une limite du connecteur, pas une faute de syntaxe. Mais la même relation porte aussi une **colonne de clé étrangère**, de la forme `nc_<préfixe>___<Table liée>_id`, et **celle-là s'écrit en `updateRecords` comme un champ ordinaire** : `{"nc_h27z___Opportunités_id": 3}` rattache l'enregistrement à l'affaire n° 3, et le lien revient résolu avec son libellé dès la réponse. **Le nom exact de cette colonne se lit dans un `getRecord` sur la table concernée, jamais de mémoire** : le préfixe est propre à chaque base et il change d'un client à l'autre. **Deux conséquences :** créer dans l'ordre reste la bonne façon de faire, un lien posé à la création valant mieux qu'un rattrapage ; et **un lien oublié se répare en une écriture**, sans jamais supprimer ni recréer l'enregistrement.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste, ne jamais traduire ni abréger.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Utiliser `fields` quand aucun nom lié n'est utile, l'omettre sinon.
 - **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
@@ -55,17 +57,18 @@ Ce que ce skill en fait, lui : c'est le seul des quatre qui n'écrit pas de text
 
 ---
 
-## Les quatre repères de qualification
+## Les trois repères de qualification
 
-Quatre champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, pourquoi cette entreprise est dans la base, en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu, et `Priorité`, haute, moyenne, basse ou en veille.
+Trois champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation : `Correspondance cible`, cœur de cible, périphérie, hors cible ou à qualifier, et `Pourquoi eux`, pourquoi cette entreprise est dans la base, en une ligne. Sur le contact : `Rôle dans la décision`, décideur, prescripteur, utilisateur, relais ou inconnu.
 
-- **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. `Priorité` dit dans quel ordre l'utilisateur rappelle, pas ce que les gens valent. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
-- **Rien ne s'écrit sans un mot de l'utilisateur.** Ces quatre champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
+- **On juge la pertinence de l'affaire, jamais la personne.** `Correspondance cible` juge une **entreprise** contre le champ `À qui je le vends` du contexte. `Rôle dans la décision` décrit une **position dans un achat**, celle que l'intéressé assume lui-même en réunion, jamais un trait de caractère. Le test qui tranche : ne rien écrire qu'on ne serait pas prêt à lui lire s'il demandait à voir sa fiche.
+- **Rien ne s'écrit sans un mot de l'utilisateur.** Ces trois champs se **proposent**, ils ne se posent jamais d'office, et une proposition non confirmée ne s'écrit pas. Un rôle déduit d'une fonction est une inférence, pas un fait, et elle a le défaut de toutes les inférences : elle sonne juste. Ce qui est obligatoire, c'est de proposer quand on a de quoi le faire, pas d'écrire.
+- **`Rôle dans la décision` se demande à la création du contact, et c'est la seule question de qualification qui ne se rate pas.** Le moment est le bon parce que c'est le seul où l'utilisateur a la personne en tête et où l'on n'interrompt rien : plus tard, il n'y en a pas. Il reste soumis à la règle du dessus, on écrit sa réponse et jamais sa fonction, et il vaudra de plus en plus cher à mesure que le produit sert à préparer des rendez-vous et pas seulement à les consigner. Le geste complet est dans `creer-contact`.
 - **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
 - **La question de la cible nomme les trois rangements en français, et demande la raison dans la même phrase.** « Frères Boyer, tu les mets où : au cœur de ce que tu cherches, en périphérie, ou plutôt de côté ? Et qu'est-ce qui te fait dire ça ? » Une question qui ne demande que le motif, « qu'est-ce qui te les fait mettre là, chez eux », **ne se comprend pas**, « là » n'ayant aucun référent pour qui ne connaît pas le champ, et surtout **elle ne rapporte pas le rangement** : il faudrait alors le déduire d'une réponse en texte libre, et une classe déduite d'un motif favorable est une invention que personne ne peut vérifier. **Sans rangement explicite dans la réponse de l'utilisateur, rien ne s'écrit dans `Correspondance cible`** : la raison seule remplit `Pourquoi eux` et la correspondance reste vide, ce qui est exactement ce que « vide veut dire jamais demandé » signifie.
 - **`Pourquoi eux` porte l'histoire, pas l'état du moment.** Il dit d'abord **pourquoi cette entreprise est entrée dans la base** : ce qui, chez eux, appelle l'offre. Le jour où elle en sort, où elle passe hors cible, **la raison de la sortie s'ajoute à la ligne d'entrée, elle ne la remplace pas** : « trois devis par semaine tapés à la main, veulent industrialiser », puis « écartés le 20 août, ce qu'ils cherchent est trop loin de ce que je fais ». Une entreprise mise de côté sans raison écrite est un travail qu'on refera dans six mois, faute de se souvenir pourquoi on avait dit non. Le test du droit d'accès vaut sur la ligne de sortie comme sur celle d'entrée : une raison d'affaires s'écrit, un jugement sur les gens ne s'écrit pas.
 - **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment ta cible », « c'est lui qui décide », « celle-là, tu la mets de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
-- **Ne jamais trier sur `Priorité`.** NoCoDB trie un single select par ordre alphabétique de la valeur : le tri donnerait basse, en veille, haute, moyenne. On **filtre** sur ce champ, on ne trie pas.
+- **L'urgence d'un contact ne vit pas dans un champ de qualification, elle vit dans `Prochaine relance`.** Le contact a porté une `Priorité` jusqu'au 31 août 2026, remplie **3 fois sur 31** en douze jours d'usage : le champ est retiré du produit. La date de la prochaine action dit toute seule, et sans que personne ait à la tenir à jour, ce qu'une échelle haute, moyenne, basse disait mal. **Ne jamais la reconstituer sous un autre nom** : ni une mention d'urgence glissée dans `Notes`, ni un `Pourquoi eux` transformé en jugement sur qui rappeler d'abord. Ce qui est urgent est ce qui est daté.
 - **Un nom d'entreprise sous-entendu ne se résout jamais tout seul avant une écriture.** Quand une phrase désigne une entreprise par « l'entreprise », « la boîte », « chez eux », « leur », et que **deux organisations au moins** sont candidates dans la phrase ou dans la conversation, on **s'arrête et on demande laquelle** avant tout appel d'écriture. La personne nommée dans la phrase est le candidat le plus probable, jamais le sujet du tour précédent, mais la probabilité ne suffit pas ici : une organisation reclassée à tort porte une raison écrite qui rend le classement crédible, et personne ne rouvrira la fiche. « Après discussion avec Nicolas Betton, l'entreprise a déjà un CRM » parle de l'entreprise **de Nicolas Betton**, pas de celle dont on parlait il y a deux phrases. Dans le doute, une question de cinq mots : « chez Perfhomme, c'est ça ? »
 
 ---
@@ -101,6 +104,7 @@ createRecords  Opportunités
 {
   "Nom":              "Site vitrine + base contacts",
   "Étape":            "Identifiée",
+  "Étape depuis":     "2026-08-19",
   "Montant estimé":   3200,
   "Clôture prévue":   "2026-09-30",
   "Notes":            "<le contexte du besoin, dans les mots de l'utilisateur>",
@@ -116,11 +120,12 @@ createRecords  Opportunités
 - `Nom` : ce qui sera vendu, pas le nom du client. « Site vitrine + base contacts », pas « Affaire Le Goff ». C'est ce qui s'affiche dans le Kanban Pipeline.
 - `Montant estimé` : un nombre nu, sans symbole ni espace. Le champ est en euros. **Ne jamais l'inventer, et toujours le demander.** Ce sont deux règles, pas une : si l'utilisateur n'a donné aucun chiffre, créer l'affaire sans montant, puis **poser la question dans la même réponse**, avec un ordre de grandeur si le contexte en porte un. « Je n'ai pas de montant sur cette affaire. Un ordre de grandeur, même large, suffit à la faire compter dans le pipeline. » Un champ qu'on s'interdit d'inventer est un champ qu'on doit demander : s'interdire l'invention n'est pas une dispense de poser la question.
 - `Clôture prévue` : la date de décision espérée, pas la date de livraison. C'est elle qui fait apparaître l'affaire dans le bilan du mois. **Elle se propose dès la création, à toutes les étapes, `Identifiée` comprise.** L'affaire 5 du 19 août 2026 est née en `Identifiée` sans date, à 4 000 € : signée demain, elle ne compterait dans aucun bilan. Une date lointaine et fausse se corrige au premier échange, une date absente ne se corrige jamais toute seule. Sans indication de l'utilisateur, en proposer une et le dire : « je mets fin septembre en prévision, on ajustera ».
+- `Étape depuis` : **la date du jour, à la création comme à chaque changement d'étape, sans jamais la demander.** C'est le seul champ de la base qui dit depuis combien de temps une affaire n'a pas bougé, et c'est cette durée que `point-strategique` et `tableau-de-bord` appellent « ça coince ». **Il n'est calculé par rien** : la base ne date pas les changements d'étape toute seule, et une affaire dont `Étape depuis` n'a pas été réécrit ment sur son âge sans que rien ne le signale. Une affaire créée aujourd'hui prend la date d'aujourd'hui, pas une date d'entrée dans le pipeline devinée.
 - **Aucun tiret cadratin**, voir les garde-fous : l'interdiction vaut pour `Notes` comme pour la phrase de confirmation.
 
 > **`Contact` et `Organisation` se posent ici ou jamais.** Les deux liens ne s'écrivent qu'à la création, voir les conventions ci-dessus. Une affaire créée sans contact restera sans interlocuteur, et le filtre par entreprise du bilan l'ignorera.
 
-> **Une affaire ouverte à la suite d'un échange raccroche cet échange, dans le même tour.** Le lien vers l'affaire ne s'écrivant qu'à la création, cela veut dire supprimer et recréer l'échange en recopiant tous ses champs, procédure décrite dans la compétence qui consigne les échanges. Un échange créé une minute avant l'affaire n'est pas rattaché tout seul, et l'affaire affichera zéro échange, ce qui la fera classer dormante au premier tableau de bord.
+> **Une affaire ouverte à la suite d'un échange raccroche cet échange, dans le même tour.** Cela tient en un `updateRecords` sur la colonne de clé étrangère de l'échange, `nc_<préfixe>___Opportunités_id`, procédure décrite dans la compétence qui consigne les échanges. Un échange créé une minute avant l'affaire n'est pas rattaché tout seul, et l'affaire affichera zéro échange, ce qui la fera classer dormante au premier tableau de bord. **Le geste est bon marché depuis le 31 août 2026 ; le sauter reste aussi coûteux qu'avant.**
 
 #### Une affaire qui s'ouvre est le meilleur moment pour écrire `Pourquoi eux`
 
@@ -166,16 +171,19 @@ Vide et `À qualifier` restent deux choses différentes, et c'est ce qui disting
 ### 4. Faire évoluer l'étape
 
 ```
-updateRecords  Opportunités  id=4  {"Étape": "Proposition", "Montant estimé": 2950}
+updateRecords  Opportunités  id=4  {"Étape": "Proposition", "Étape depuis": "2026-08-19",
+                                    "Montant estimé": 2950}
 ```
 
 Un devis chiffré est l'occasion de corriger le montant estimé. Le faire dans le même appel.
 
+**`Étape depuis` accompagne toute écriture de `Étape`, sans exception et sans question.** Les deux champs voyagent ensemble : une étape écrite sans sa date fait passer une affaire pour figée depuis son ancienne étape, et le bilan la rangera dans « ce qui coince » le jour même où elle vient d'avancer. La date est celle du **mouvement réel**, pas celle de la saisie : un devis parti vendredi et consigné lundi porte le vendredi, exactement comme la `Date` de l'échange qui l'accompagne.
+
 **Tout changement d'étape réclame `Clôture prévue` si le champ est vide**, et le passage à `Proposition` est le dernier moment où l'oubli est encore rattrapable. C'est là qu'une date de décision est la plus sûre : on vient d'envoyer un chiffre, on sait quand on espère la réponse. La demander en une phrase, « quand est-ce que tu espères une réponse ? », et l'écrire dans le même appel :
 
 ```
-updateRecords  Opportunités  id=4  {"Étape": "Proposition", "Montant estimé": 2950,
-                                    "Clôture prévue": "2026-09-15"}
+updateRecords  Opportunités  id=4  {"Étape": "Proposition", "Étape depuis": "2026-08-19",
+                                    "Montant estimé": 2950, "Clôture prévue": "2026-09-15"}
 ```
 
 Si l'utilisateur ne sait pas, **proposer une date et le dire**, plutôt que de laisser vide. Ce n'est pas une invention : le champ s'appelle « prévue », et une prévision se corrige. Le laisser vide, en revanche, ne se corrige jamais tout seul : les deux compétences de bilan filtrent le conclu sur ce champ, et **une affaire sans date de clôture n'est comptée nulle part, même gagnée**. Elle ne produit aucune erreur, elle produit un zéro crédible.
@@ -210,9 +218,12 @@ C'est la matière du bilan annuel, et la seule qui ne se reconstitue pas après 
 **`Clôture prévue` prend la date du jour de la décision**, dans le même appel que l'étape :
 
 ```
-updateRecords  Opportunités  id=2  {"Étape": "Perdue", "Clôture prévue": "2026-08-19",
+updateRecords  Opportunités  id=2  {"Étape": "Perdue", "Étape depuis": "2026-08-19",
+                                    "Clôture prévue": "2026-08-19",
                                     "Notes": "<ce qui s'y trouvait déjà, plus la raison>"}
 ```
+
+**Sur une clôture, les deux dates portent le même jour et ne disent pas la même chose.** `Clôture prévue` dit quand la décision a été prise, `Étape depuis` dit depuis quand l'affaire est dans son étape finale. Elles se séparent dès la clôture suivante : une affaire gagnée en août et rouverte en octobre garde sa date de décision d'août et prend un `Étape depuis` d'octobre.
 
 > **La prévision devient un fait le jour où elle se réalise ou s'annule.** Le champ porte « prévue » dans son nom et il sert de date **réelle** aux deux compétences de bilan, qui comptent le conclu dessus. Une affaire perdue le 19 août et laissée au 3 septembre ne comptera pas dans le bilan d'août et comptera dans celui de septembre : le taux de transformation est faux **dans les deux mois**, et les deux restent crédibles. C'est le genre d'erreur qui ne se voit jamais.
 >
@@ -221,7 +232,7 @@ updateRecords  Opportunités  id=2  {"Étape": "Perdue", "Clôture prévue": "20
 **Regarder ce qui reste ouvert derrière l'affaire, par un appel filtré :**
 
 ```
-queryRecords  Tâches  where=(Opportunité,eq,<nom de l'affaire>)~and(Statut,in,À faire,En cours)
+queryRecords  Tâches  where=(Opportunité,eq,<nom de l'affaire>)~and(Ouverte,eq,1)
 ```
 
 > **Le compteur de liens `Tâches` ne compte que des liens, jamais des tâches ouvertes.** Il vaut 2 sur une affaire qui porte une tâche faite et une tâche à faire, et proposer « de refermer les deux tâches ouvertes » en nommant celle qui est déjà faite est ce qui s'est produit le 19 août 2026. **Un compteur de liens ne répond pas à une question qui porte un statut** : ce qui reste à faire se lit par une requête filtrée, et le compte et la liste qui l'accompagne sortent du même appel. Si on ne peut pas nommer les lignes, on n'annonce pas de nombre.

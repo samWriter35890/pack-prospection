@@ -15,7 +15,7 @@
       "name": "pack-solo",
       "source": "./pack-solo",
       "description": "Assistant commercial du Pack Solo SenseAct : contacts, echanges, opportunites, relances et bilans, dans votre base NoCoDB.",
-      "version": "2.4.0",
+      "version": "2.5.0",
       "author": {
         "name": "SenseAct",
         "email": "contact@senseact.fr",
