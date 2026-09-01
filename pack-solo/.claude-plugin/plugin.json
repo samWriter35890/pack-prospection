@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "pack-solo",
   "displayName": "Pack Solo",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Assistant commercial du Pack Solo SenseAct : contacts, echanges, opportunites, relances et bilans, dans votre base NoCoDB.",
   "author": {
     "name": "SenseAct",
