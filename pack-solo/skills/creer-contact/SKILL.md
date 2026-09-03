@@ -85,6 +85,88 @@ createRecords  Organisations
 
 `Secteur` est une liste **adaptée à chaque client** : lire les valeurs disponibles avec `getTableSchema` avant d'écrire, ne pas en inventer une.
 
+#### Compléter l'identité publique de l'entreprise
+
+Six colonnes de la table Organisations viennent de l'open data et de nulle part ailleurs : `SIRET`, `Adresse`, `NAF`, `Effectifs`, `Création` et `Dirigeant`. `NAF` et `Effectifs` sont la matière contre laquelle `Correspondance cible` se juge ; `SIRET`, `Adresse` et `Dirigeant` rendent l'organisation facturable.
+
+**Le geste est un seul bloc**, la ville et l'attente du « oui » comprises :
+
+```
+1. queryRecords  Organisations  where=(Nom,like,%guiho%)  fields=["Nom","Ville","SIRET"]
+                                ← toujours. Si SIRET est déjà rempli, le geste s'arrête ici
+2. la ville, ou rien.            ← si Ville est vide, la demander à l'utilisateur,
+                                   deux mots, avant toute recherche
+3. GET https://recherche-entreprises.api.gouv.fr/search
+       ?q=Guiho+Clotures&departement=44&per_page=3
+                                ← le nom SEUL dans q, la ville JAMAIS dans q,
+                                  elle voyage dans departement= ou code_postal=
+4. montrer ce qui est rendu, en français, et attendre un « oui »
+5. updateRecords Organisations  id=34
+{
+  "SIRET":     "39061988000029",
+  "Adresse":   "ZA des Pedras",
+  "NAF":       "25.12Z",
+  "Effectifs": "10 à 19",
+  "Création":  "1993-04-05"
+}
+```
+
+> **La ligne 2 fait partie de la recherche, elle ne la précède pas.** Sans ville, le nom seul rapporte le mauvais SIRET avec l'aplomb du bon, et personne ne rouvrira la fiche. Mesuré le 1er septembre 2026 sur les 31 organisations de la base de référence, dont 29 sans ville : `Habil` rend **315 résultats** et le premier s'appelle exactement `HABIL`, à Plaisir dans les Yvelines. Avec `departement=35`, il rend **un seul** résultat, `METIERS DES ENERGIES`, enseigne `HABIL`, à Rennes, c'est-à-dire celui de la base. **Le nom seul ne trouve pas moins, il trouve faux.**
+>
+> **Et la ville ne se met jamais dans `q`.** Toujours le 1er septembre 2026 : `Perfhomme` rend 23 résultats, `Perfhomme Rennes` en rend **zéro**. Le champ de recherche n'est pas une barre d'adresse, il cherche une dénomination.
+
+**La ligne 4 n'est pas une politesse, c'est la règle du pack appliquée telle quelle** : rien ne s'écrit sans un mot de l'utilisateur, et une identité publique ne fait pas exception. Ce qu'on lui montre tient en une phrase, en français, sans nom de champ :
+
+> Guiho Clôtures, j'en trouve une à Saint-André-des-Eaux, fabrication de portes et fenêtres en métal, créée en 1993, entre 10 et 19 salariés. C'est bien la tienne ?
+
+**Ce qui rend cette question honnête, c'est ce qu'elle affiche.** La commune, l'activité en clair et l'année de création sont les trois choses sur lesquelles l'utilisateur reconnaît son entreprise ou dit non. Un SIRET affiché seul ne se vérifie pas, il se croit.
+
+**Six champs et pas un de plus.** La réponse de l'API est beaucoup plus riche : forme juridique, numéro de TVA, chiffre d'affaires, résultat net. **Ces colonnes n'existent pas dans la base et rien de tout cela ne se recopie**, ni dans un autre champ, ni dans `Notes`.
+
+| Champ de la base | Ce qu'on lit dans le premier résultat | La règle |
+|---|---|---|
+| `SIRET` | `siege.siret` | Quatorze chiffres, **du texte**. C'est le SIRET **du siège**, jamais celui d'un établissement rendu par un filtre |
+| `Adresse` | `siege.adresse`, **coupée avant le code postal** | `ZA DES PEDRAS 44117 SAINT-ANDRE-DES-EAUX` s'écrit `ZA des Pedras`. Le code postal et la commune sont dans `Ville`, et une adresse qui les recopie fera diverger les deux champs |
+| `NAF` | `activite_principale` | Forme `25.12Z`, telle quelle |
+| `Création` | `date_creation` | `AAAA-MM-JJ`, format déjà celui du champ |
+| `Effectifs` | `tranche_effectif_salarie`, traduit | Voir la table ci-dessous |
+| `Dirigeant` | `dirigeants[0]` | Voir la règle ci-dessous. **Souvent à ne pas écrire** |
+
+**Les tranches, dix valeurs de la base contre les codes de l'INSEE :**
+
+| Code rendu | Ce qui s'écrit | Code rendu | Ce qui s'écrit |
+|---|---|---|---|
+| `00` | `0` | `21` | `50 à 99` |
+| `01` | `1 à 2` | `22` | `100 à 199` |
+| `02` | `3 à 5` | `31` à `53` | `200 et plus` |
+| `03` | `6 à 9` | `NN` | voir ci-dessous |
+| `11` | `10 à 19` | | |
+| `12` | `20 à 49` | | |
+
+**`NN` ne se traduit jamais tout seul en `0`.** La moitié des sociétés actives portent `NN`, et la plupart de celles-là sont marquées non employeur, ce qui veut dire zéro salarié, c'est-à-dire le profil cible du Pack Solo lui-même. **Cela reste une déduction, et une déduction se propose** : `NN` avec `siege.caractere_employeur = "N"` se montre à l'utilisateur comme « aucun salarié déclaré, je note zéro ? », et c'est son « oui » qui écrit `0`. `NN` avec `"O"` **laisse le champ vide**, et rien ne part.
+
+> **Un effectif inconnu laisse `Effectifs` vide.** Jamais `Non renseigné`, qui est un mot d'écran et pas une valeur de base : les cinq organisations du 2 septembre 2026 l'ont reçu en dur, et aucun comptage de champs vides sur cette table n'est plus exploitable depuis.
+
+> **Et le caractère employeur se lit dans `siege`, pas à la racine.** À la racine, `caractere_employeur` est **nul sur tous les enregistrements examinés le 1er septembre 2026**, Odyssée 29, Carrefour Hypermarchés et Airbus Operations compris. Lu là, la règle du dessus ne se déclencherait jamais, en silence.
+
+**`Dirigeant` ne se remplit que si le dirigeant est une personne physique.** `dirigeants[0].type_dirigeant` le dit. Alors, et alors seulement, `prenoms` et `nom` s'écrivent en casse normale, **le premier prénom seulement** : `SAMUEL HENRI MARCEL` et `LÉCRIVAIN` donnent `Samuel Lécrivain`. Trois cas laissent le champ vide, et c'est le cas le plus fréquent sur cette base :
+
+- **`type_dirigeant` vaut `personne morale`** : le dirigeant est une société, `HOLDING COLONNIER` pour Guiho Clôtures, `ALCHIMIE` et `BLOOM` pour Odyssée 29. **Cela ne s'écrit pas dans un champ qui porte un nom de personne**, et cela ne devient jamais une fiche Contact.
+- **La liste est vide.**
+- **Plusieurs personnes physiques.** Le champ porte **le représentant légal**, pas un annuaire : sans certitude sur lequel des deux, on ne choisit pas.
+
+> **Un dirigeant publié n'est pas un interlocuteur.** C'est un nom d'état civil pris dans un registre, et il porte une année de naissance que **rien n'autorise à écrire en base**. S'il devient réellement l'un des interlocuteurs de l'utilisateur, il prend **en plus** une fiche Contact, par le geste ordinaire de cette compétence, avec ce que l'utilisateur en dit.
+
+**Trois choses que ce geste n'écrit jamais**, et chacune ferme une porte qui se rouvrirait toute seule :
+
+- **Ni `Secteur` ni `Taille`.** La correspondance du code NAF vers la liste `Secteur` et le recouvrement entre `Effectifs` et `Taille` sont deux questions ouvertes, tranchées ailleurs ou pas encore. Une compétence qui trancherait l'une des deux en passant écrirait la règle à l'endroit où personne ne la retrouvera.
+- **Ni `Ville` déjà renseignée.** L'open data rend la commune en majuscules sans accent, `LAILLE`, `SAINT-ANDRE-DES-EAUX`. Elle **ne remplace jamais** ce que l'utilisateur a saisi. Sur une organisation dont `Ville` est vide, elle se propose comme le reste, et s'écrit en casse normale.
+- **Ni quoi que ce soit sur une société cessée.** `etat_administratif` vaut `C` : on le dit à l'utilisateur en français, « celle que je trouve sous ce nom a fermé, c'est peut-être une homonyme », et **rien ne part en base**. Cas réel, `SENSEACT AVOCATS` le 1er septembre 2026.
+
+> **Le nom rendu doit porter le nom cherché, sinon on ne propose pas, on montre.** L'API cherche une dénomination légale et des enseignes déclarées, pas une marque, **et elle est floue** : elle ne rend pas zéro quand elle ne trouve pas, elle rend autre chose. Mesuré le 1er septembre 2026 : `Cabinet Dupont Conseil` rend en premier `YOUR ENGLISH WORKSHOP`, `Agence Galopins` rend `GERARD GALOPIN`. **La réponse ne porte aucun score**, il n'y a donc rien à comparer : le seul test qui tranche est textuel, les mots du nom cherché contre ceux de `nom_complet`, `nom_raison_sociale`, `sigle` et `siege.liste_enseignes`, accents, casse et forme juridique mis de côté. Les mots correspondent, on propose. Ils ne correspondent pas, ou plusieurs résultats correspondent, on montre **trois lignes au plus, chacune avec sa commune et son activité**, et on demande. **On ne rattrape jamais un doute à la main.**
+
+**Un tiers de silence est normal, et se dit sans être promis.** Sur les 31 organisations de la base de référence, interrogées par leur nom seul le 1er septembre 2026, **10 ne rendent rien du tout**, `Holl Studio`, `Cinnacom`, `Pain d'épices traiteur`, `Les Ateliers Défouloirs` et six autres. Ce n'est pas une panne, c'est ce que vaut un nom commercial dans un registre de dénominations. **Une entreprise introuvable se dit en une phrase et ne se poursuit pas** : ni recherche web de rattrapage, ni SIRET reconstitué, ni deuxième question. Les champs restent vides, ce qui est leur état normal.
+
 #### Sur une organisation qu'on vient de créer, demander si c'est une cible
 
 C'est la seule question de qualification de ce skill, et elle se pose **une fois par entreprise, jamais par personne**. Une organisation déjà en base et déjà renseignée ne se redemande pas, et deux contacts de la même boîte ne valent qu'une question.
@@ -94,6 +176,23 @@ C'est la seule question de qualification de ce skill, et elle se pose **une fois
 > Super Super, tu les mets où : au cœur de ce que tu cherches, en périphérie, ou plutôt de côté ? Et qu'est-ce qui te fait dire ça ?
 
 **Le rangement et la raison, dans la même phrase, jamais l'un sans l'autre.** Les deux moitiés se sont ratées chacune leur tour, et chaque fois pour une raison différente. Demander seulement *si*, « c'est le genre de boîte que tu cherches ? », a une réponse par défaut, elle est « oui », et rend un mot là où `Pourquoi eux` attend une phrase. Demander seulement *en quoi*, « qu'est-ce qui te les fait mettre là, chez eux ? », **ne se comprend pas** et **ne rapporte aucun rangement** : le 25 août 2026 la classe a dû être déduite d'un texte libre quatre fois, et la cinquième elle n'a pas été écrite du tout, tout en étant annoncée comme écrite. La question qui nomme les trois rangements **et** demande la raison remplit les deux champs d'un coup, sans coûter un tour de plus, et laisse une trace vérifiable de ce que l'utilisateur a réellement dit.
+
+**Le rangement et sa raison partent ensemble ou ne partent pas.**
+
+```
+1. l'utilisateur a-t-il donné les DEUX, le rangement et la raison ?
+                                ← s'il n'a répondu qu'au rangement, redemander la raison
+                                  en une phrase, et ne rien écrire avant sa réponse
+2. updateRecords Organisations  id=36
+{
+  "Correspondance cible": "Cœur de cible",
+  "Pourquoi eux":         "<les mots de l'utilisateur, pas une reformulation>"
+}
+```
+
+> **`Correspondance cible` sans `Pourquoi eux`, c'est un classement qui ne sert à rien.** Mesuré le 2 septembre 2026 : trois organisations rangées en cœur de cible à 14 h 42 sans leur raison, et à 15 h 20 la compétence d'accroche s'arrête devant l'une d'elles, « je ne sais pas encore ce qui te fait dire que Drop interactive est cœur de cible ». **Le champ vide ne bloque pas l'écriture, il bloque le geste suivant, trente-huit minutes plus tard, quand plus personne ne fait le lien.** Une réponse qui ne porte que le rangement n'est pas une réponse complète : c'est une moitié, et on demande l'autre.
+
+> **Une lecture qui conditionne une écriture est inconditionnelle.** Elle ne se saute pas parce qu'on croit connaître la réponse, et une réponse vide est un résultat, pas une raison de ne pas avoir appelé. Ce qui peut porter une condition, c'est une ligne **qui suit** l'écriture, jamais celle qui l'autorise.
 
 **Sans rangement dans la réponse, `Correspondance cible` reste vide.** Une raison seule s'écrit dans `Pourquoi eux` et rien d'autre ne part. Un motif favorable n'est pas un classement, et le déduire produit une valeur crédible que personne ne rouvrira jamais.
 
@@ -130,6 +229,10 @@ createRecords  Contacts
   "Organisation":    {"Id": 7}
 }
 ```
+
+> **Ce qui est confirmé à l'utilisateur est recopié depuis ce qui a été envoyé, jamais depuis ce qu'on avait l'intention d'envoyer.** Une date, un montant, une étape ou une échéance se redisent **avec la valeur exacte du champ**, telle qu'elle figure dans l'appel qui vient de partir. « J'ai posé une relance au 2 septembre » est vérifiable en une seconde par qui ouvre la table ; « j'ai posé une relance » ne l'est pas, et « au 9 septembre » est un mensonge que personne n'ira contredire.
+
+> **Une fonction, une entreprise ou un rôle prononcés par l'utilisateur s'écrivent dans le champ correspondant, dans le même appel.** « C'est lui le dirigeant » remplit `Fonction`. Une information dite et non écrite est perdue deux fois : elle ne sera pas dans la base, et personne ne saura qu'elle a été dite. La compétence d'import écrit la fonction de quatre contacts d'affilée sans qu'on le lui demande ; celle qui écoute n'a pas de raison de faire moins.
 
 | Champ | Valeurs admises |
 |---|---|
@@ -188,7 +291,7 @@ Une question posée dans la même réponse repart avec le reste et obtient une r
 - **Ne rien inventer** : pas d'email déduit d'un modèle `prenom.nom@`, pas de fonction supposée, pas de ville devinée. Un champ vide se complète plus tard, un champ faux se propage.
 - **Plusieurs personnes d'un coup** : `createRecords` accepte plusieurs enregistrements en un appel, mais le dédoublonnage se fait pour chacune, et aussi entre elles.
 - **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « tu ne m'as pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un. **Les guillemets sont le signal, pas le mot.** « Il passe à « à contacter » » cite la base ; « il est maintenant dans ceux que tu dois contacter » dit la même chose. Une valeur de liste qui se lit bien en français se **traduit** quand même : c'est de la citer qui trahit, pas de la comprendre. **Et la règle porte sur le parcours, pas sur le mode d'emploi.** Quand l'utilisateur interroge la construction de sa base, compare deux champs, ou demande pourquoi une valeur plutôt qu'une autre, il pose une question d'outil et attend une réponse d'outil : les noms de champs et les valeurs se disent. **Le basculement est marqué par la question, jamais par la compétence.** Dès le tour suivant qui parle d'une personne ou d'une entreprise, on revient au français ordinaire.
-- **Le jargon commercial anglais ne se dit pas davantage.** `pipeline`, `lead`, `funnel`, `closing` ne se disent pas. On dit « tes affaires en cours », « ta plus grosse affaire », « ce que tu as en discussion ». C'est la règle du vocabulaire de la base élargie d'un cran : le nom d'une colonne trahit le schéma, un mot de jargon trahit le métier de celui qui a écrit l'outil. **`pipeline` est un mot d'outil et ne sort jamais vers l'utilisateur.** Il vit légitimement dans la `description` d'une compétence, que le client ne lit pas, et nulle part dans une phrase qui lui est adressée. Ce qu'il désigne se dit « tes affaires en cours ». **Le mot est ressorti dans une phrase entière une passe après avoir été corrigé** : il ne se retire donc pas d'une liste de mots interdits, il se remplace par sa traduction, écrite juste à côté de lui.
+- **Le jargon commercial anglais ne se dit pas davantage.** `pipeline`, `lead`, `funnel`, `closing` ne se disent pas. On dit « tes affaires en cours », « ta plus grosse affaire », « ce que tu as en discussion ». C'est la règle du vocabulaire de la base élargie d'un cran : le nom d'une colonne trahit le schéma, un mot de jargon trahit le métier de celui qui a écrit l'outil. **`pipeline` est un mot d'outil et ne sort jamais vers l'utilisateur.** Ce qu'il désigne se dit « tes affaires en cours ». **Le mot est ressorti dans une phrase entière une passe après avoir été corrigé, trois fois** : il ne se retire donc pas d'une liste de mots interdits, il se remplace par sa traduction, écrite juste à côté de lui. **Et depuis la v2.7.0 il ne figure plus nulle part dans les fiches**, ni dans une `description`, ni dans un titre de section, ni dans une phrase de travail : il n'y reste que dans cette règle qui le nomme pour l'interdire, et dans `Kanban Pipeline`, qui est un nom d'écran NoCoDB et pas un mot de vocabulaire. **Une interdiction est innocente, un modèle est coupable** : les huit fiches qui portaient la règle sans le modèle ne l'ont jamais dit.
 - **Le nom d'une compétence ne sort pas davantage.** Jamais « je peux m'en occuper via `creer-opportunite` », jamais `pack-solo:` quoi que ce soit, jamais « je vais utiliser la compétence qui… ». Ce sont des rouages, et le client n'a pas acheté des rouages : il a acheté que ça se fasse. On annonce **ce qu'on va faire**, « je peux ouvrir l'affaire avec toi », jamais avec quoi on le fait. Même famille que la règle du dessus, même raison : nommer la mécanique apprend qu'il y a une mécanique à connaître. **Et ce qui s'écrit avant un appel obéit à la même règle que ce qui s'écrit après** : un préambule d'outil, une phrase de transition, une annonce de lecture s'adressent à l'utilisateur au même titre que la réponse. Ni « lire le skill créer-opportunité, notamment l'étape de clôture », ni « reading point-strategique skill », ni « il me manque le milieu du guide, laisse-moi le lire ». Les trois ont été lues à l'écran le 25 août 2026, une passe après que la règle a été déclarée tenue. **Une compétence qui a besoin de lire quelque chose le lit sans le dire.** **Tout ce qui s'affiche entre deux appels d'outil est une réponse.** Même langue, même vocabulaire, mêmes interdits que la phrase finale : le français, aucun nom de table ni de champ, aucune annonce de ce qui va être appelé. **Si rien n'a besoin d'être dit entre deux écritures, rien ne se dit.** **Un enchaînement ne se raconte pas davantage qu'un outil.** Ni « Historique : », ni « Maintenant, l'échange de ce matin », ni aucun titre de section qui décrive l'étape où l'on se trouve. Ce sont des étiquettes de procédure, et « journal » est un nom d'objet interne. **Ce qui vient d'être écrit se dit une fois, en français, dans la phrase de confirmation prévue pour cela**, et pas une seconde fois en tête du geste suivant.
 - **Rien de la mécanique ne se dit à l'utilisateur, y compris quand elle coince.** Ni le nom d'un outil du connecteur, ni un repli technique, ni une remarque sur la mémoire : « pas d'outil de comptage disponible, je passe par autre chose » n'a rien à faire dans une conversation. Un outil manquant se contourne **en silence** ; seule une base **injoignable** se dit, dans les phrases déjà prévues pour ça. Et **tout ce qui s'adresse à l'utilisateur s'écrit en français**, y compris une simple phrase de transition : une incise en anglais au milieu d'un travail montre la couture, et elle amène le tiret cadratin avec elle.
 - **On tutoie l'utilisateur, dans les neuf compétences, toujours.** Pas de vouvoiement, pas d'alternance d'une compétence à l'autre : rien ne trahit plus vite un assemblage de morceaux qu'un assistant qui change de registre au milieu d'une séance. `Comment je parle` ne décide que du ton de ce qui **sort vers un tiers**, un email ou une accroche, et ne change rien à la façon de s'adresser à l'utilisateur.
@@ -205,3 +308,6 @@ Une question posée dans la même réponse repart avec le reste et obtient une r
 - **Une organisation créée sans qu'on demande si c'est une cible est une organisation qu'on ne qualifiera jamais.** Personne ne rouvre une fiche pour ça, et le jour où l'utilisateur demande « qui viser cette semaine », elle manquera au comptage sans qu'aucun chiffre ne bouge. La question part avec la confirmation, ou elle ne part pas.
 - **Ne jamais requalifier une organisation qui existait déjà.** Elle a été jugée une fois, par l'utilisateur, peut-être il y a trois mois : une fiche rattachée n'est pas une occasion de rejuger l'entreprise. Le seul cas qui rouvre la question, c'est l'utilisateur qui en parle de lui-même.
 - **Un champ vide se demande, il ne s'abandonne pas.** Créer sans email est normal, conclure sans avoir demandé l'email ne l'est pas. Et la demande vit dans la phrase de confirmation, jamais dans un « on verra plus tard ».
+- **Une phrase de l'utilisateur qui supporte deux lectures se rend à l'utilisateur, avec les deux lectures nommées, et la base ne bouge pas.** Pas « je pense que tu veux dire », pas un choix silencieux : les deux lectures écrites côte à côte, et on attend. C'est déjà ce que la compétence fait quand elle attrape un lapsus sur un prénom ; une ambiguïté de sens ne mérite pas moins qu'une ambiguïté d'orthographe.
+- **Avant de dire qu'une information manque, la relire.** « Cette boîte n'a jamais été classée », « je n'ai pas de montant », « rien n'est noté là-dessus » sont des affirmations sur l'état de la base : elles se disent après un appel, jamais depuis le fil de la conversation. **Un classement écrit par la compétence elle-même dans la même fenêtre reste un classement écrit**, et l'affirmer absent est le seul cas où la compétence se contredit à voix haute devant l'utilisateur.
+- **Une formule d'affichage ne descend jamais dans un champ.** « Non renseigné », « aucun », « à compléter », « inconnu » sont des mots pour l'écran, où ils remplacent une case blanche. **Un champ que l'utilisateur n'a pas renseigné reste vide en base**, et c'est son état normal. Écrit, le mot devient une valeur : un filtre `blank` ne retrouvera jamais ces lignes, le compte des fiches à compléter sera faux, et **aucune erreur ne se produira** le jour où quelqu'un s'y fiera. Le 2 septembre 2026, cinq organisations sont nées avec un champ portant la chaîne de caractères « Non renseigné » au lieu d'être vide.

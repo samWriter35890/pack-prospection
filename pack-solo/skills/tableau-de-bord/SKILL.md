@@ -1,11 +1,11 @@
 ---
 name: tableau-de-bord
-description: Faire le point commercial, pipeline, chiffre en cours, relances en retard, activité de la période, affaires dormantes. À utiliser quand l'utilisateur demande où il en est, veut un bilan de semaine ou de mois, ou s'interroge sur un chiffre. Commente les chiffres, n'affiche pas que des compteurs.
+description: Faire le point commercial, affaires en cours, chiffre en cours, relances en retard, activité de la période, affaires dormantes. À utiliser quand l'utilisateur demande où il en est, veut un bilan de semaine ou de mois, ou s'interroge sur un chiffre. Commente les chiffres, n'affiche pas que des compteurs.
 ---
 
 # Tableau de bord
 
-Fait le point **périodique** : bilan de semaine ou de mois, état du pipeline, affaires gagnées et perdues, affaires dormantes.
+Fait le point **périodique** : bilan de semaine ou de mois, état des affaires en cours, affaires gagnées et perdues, affaires dormantes.
 
 Le quotidien n'est pas ici : les relances du jour, les réponses reçues et les échanges récents relèvent de `accueil`. **La frontière, en une question : la demande porte-t-elle sur aujourd'hui, ou sur une période ?** Ce skill répond à « où j'en suis sur la semaine, sur le mois, depuis la dernière fois » ; `accueil` répond à « ce que je fais aujourd'hui ». **Ce n'est pas le mot employé qui décide, c'est le sujet** : une demande qui contient « cette semaine » mais qui veut savoir par qui commencer est une question du jour, et elle part là-bas. **Ce qui ne sépare pas les deux : recommander une action.** Les deux le font, et ce skill le fait en dernier point de sa restitution.
 
@@ -50,19 +50,23 @@ Le quotidien n'est pas ici : les relances du jour, les réponses reçues et les 
 Forme réelle d'un appel, avec les identifiants lus dans le schéma :
 
 ```
-aggregate  Opportunités
-  aggregations = [
-    { field: "<id de Montant estimé>",  type: "sum" },
-    { field: "<id de Nom>",             type: "count_filled" }
-  ]
-  filterGroups = [
-    { alias: "en_cours",    where: "(Ouverte,eq,1)" },
-    { alias: "proposition", where: "(Étape,eq,Proposition)" },
-    { alias: "gagnees",     where: "(Étape,eq,Gagnée)~and(Clôture prévue,isWithin,pastNumberOfDays,30)" },
-    { alias: "perdues",     where: "(Étape,eq,Perdue)~and(Clôture prévue,isWithin,pastNumberOfDays,30)" },
-    { alias: "tout" }
-  ]
+1. getTableSchema  Opportunités   ← toujours, une fois par session, avant tout aggregate.
+                                    Retenir les id de « Montant estimé » et de « Nom »
+2. aggregate       Opportunités
+   aggregations = [
+     { field: "<id de Montant estimé>",  type: "sum" },
+     { field: "<id de Nom>",             type: "count_filled" }
+   ]
+   filterGroups = [
+     { alias: "en_cours",    where: "(Ouverte,eq,1)" },
+     { alias: "proposition", where: "(Étape,eq,Proposition)" },
+     { alias: "gagnees",     where: "(Étape,eq,Gagnée)~and(Clôture prévue,isWithin,pastNumberOfDays,30)" },
+     { alias: "perdues",     where: "(Étape,eq,Perdue)~and(Clôture prévue,isWithin,pastNumberOfDays,30)" },
+     { alias: "tout" }
+   ]
 ```
+
+> **Un `aggregate` qui rend `{}`, `null` ou un total à zéro ne se publie pas.** C'est la seule réponse silencieuse du connecteur, et un zéro crédible est plus dangereux qu'une erreur. Le repli est `countRecords` sur le même filtre, pris **en silence** : l'utilisateur n'a pas à savoir quel outil a servi. **Un chiffre publié vient de l'appel qui l'a rendu, jamais d'un calcul de rattrapage sur une liste déjà lue.**
 
 Réponse : un objet par alias, chaque valeur indexée par titre de champ.
 
@@ -78,7 +82,7 @@ Un `filterGroups` sans `where` porte sur toute la table. `count_filled` sur le c
 
 Cinq blocs, dans cet ordre. Ne pas tout sortir à chaque fois : suivre la question posée.
 
-### 1. Le pipeline
+### 1. Les affaires en cours
 
 Un `aggregate` sur Opportunités, comme ci-dessus : montant et nombre d'affaires en cours, dont celles en proposition. C'est le chiffre que l'utilisateur attend en premier.
 
@@ -244,7 +248,7 @@ Sur une base presque vide, le dire en une phrase et s'arrêter. Un bilan sur tro
 - **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « tu ne m'as pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un. **Les guillemets sont le signal, pas le mot.** « Il passe à « à contacter » » cite la base ; « il est maintenant dans ceux que tu dois contacter » dit la même chose. Une valeur de liste qui se lit bien en français se **traduit** quand même : c'est de la citer qui trahit, pas de la comprendre. **Et la règle porte sur le parcours, pas sur le mode d'emploi.** Quand l'utilisateur interroge la construction de sa base, compare deux champs, ou demande pourquoi une valeur plutôt qu'une autre, il pose une question d'outil et attend une réponse d'outil : les noms de champs et les valeurs se disent. **Le basculement est marqué par la question, jamais par la compétence.** Dès le tour suivant qui parle d'une personne ou d'une entreprise, on revient au français ordinaire.
 - **Le nom d'une compétence ne sort pas davantage.** Jamais « je peux m'en occuper via `creer-opportunite` », jamais `pack-solo:` quoi que ce soit, jamais « je vais utiliser la compétence qui… ». Ce sont des rouages, et le client n'a pas acheté des rouages : il a acheté que ça se fasse. On annonce **ce qu'on va faire**, « je peux ouvrir l'affaire avec toi », jamais avec quoi on le fait. Même famille que la règle du dessus, même raison : nommer la mécanique apprend qu'il y a une mécanique à connaître. **Et ce qui s'écrit avant un appel obéit à la même règle que ce qui s'écrit après** : un préambule d'outil, une phrase de transition, une annonce de lecture s'adressent à l'utilisateur au même titre que la réponse. Ni « lire le skill créer-opportunité, notamment l'étape de clôture », ni « reading point-strategique skill », ni « il me manque le milieu du guide, laisse-moi le lire ». Les trois ont été lues à l'écran le 25 août 2026, une passe après que la règle a été déclarée tenue. **Une compétence qui a besoin de lire quelque chose le lit sans le dire.** **Tout ce qui s'affiche entre deux appels d'outil est une réponse.** Même langue, même vocabulaire, mêmes interdits que la phrase finale : le français, aucun nom de table ni de champ, aucune annonce de ce qui va être appelé. **Si rien n'a besoin d'être dit entre deux écritures, rien ne se dit.** **Un enchaînement ne se raconte pas davantage qu'un outil.** Ni « Historique : », ni « Maintenant, l'échange de ce matin », ni aucun titre de section qui décrive l'étape où l'on se trouve. Ce sont des étiquettes de procédure, et « journal » est un nom d'objet interne. **Ce qui vient d'être écrit se dit une fois, en français, dans la phrase de confirmation prévue pour cela**, et pas une seconde fois en tête du geste suivant.
 - **Rien de la mécanique ne se dit à l'utilisateur, y compris quand elle coince.** Ni le nom d'un outil du connecteur, ni un repli technique, ni une remarque sur la mémoire : « pas d'outil de comptage disponible, je passe par autre chose » n'a rien à faire dans une conversation. Un outil manquant se contourne **en silence** ; seule une base **injoignable** se dit, dans les phrases déjà prévues pour ça. Et **tout ce qui s'adresse à l'utilisateur s'écrit en français**, y compris une simple phrase de transition : une incise en anglais au milieu d'un travail montre la couture, et elle amène le tiret cadratin avec elle.
-- **Le jargon commercial anglais ne se dit pas davantage.** `pipeline`, `lead`, `funnel`, `closing` ne se disent pas. On dit « tes affaires en cours », « ta plus grosse affaire », « ce que tu as en discussion ». C'est la règle du vocabulaire de la base élargie d'un cran : le nom d'une colonne trahit le schéma, un mot de jargon trahit le métier de celui qui a écrit l'outil. **`pipeline` est un mot d'outil et ne sort jamais vers l'utilisateur.** Il vit légitimement dans la `description` d'une compétence, que le client ne lit pas, et nulle part dans une phrase qui lui est adressée. Ce qu'il désigne se dit « tes affaires en cours ». **Le mot est ressorti dans une phrase entière une passe après avoir été corrigé** : il ne se retire donc pas d'une liste de mots interdits, il se remplace par sa traduction, écrite juste à côté de lui.
+- **Le jargon commercial anglais ne se dit pas davantage.** `pipeline`, `lead`, `funnel`, `closing` ne se disent pas. On dit « tes affaires en cours », « ta plus grosse affaire », « ce que tu as en discussion ». C'est la règle du vocabulaire de la base élargie d'un cran : le nom d'une colonne trahit le schéma, un mot de jargon trahit le métier de celui qui a écrit l'outil. **`pipeline` est un mot d'outil et ne sort jamais vers l'utilisateur.** Ce qu'il désigne se dit « tes affaires en cours ». **Le mot est ressorti dans une phrase entière une passe après avoir été corrigé, trois fois** : il ne se retire donc pas d'une liste de mots interdits, il se remplace par sa traduction, écrite juste à côté de lui. **Et depuis la v2.7.0 il ne figure plus nulle part dans les fiches**, ni dans une `description`, ni dans un titre de section, ni dans une phrase de travail : il n'y reste que dans cette règle qui le nomme pour l'interdire, et dans `Kanban Pipeline`, qui est un nom d'écran NoCoDB et pas un mot de vocabulaire. **Une interdiction est innocente, un modèle est coupable** : les huit fiches qui portaient la règle sans le modèle ne l'ont jamais dit.
 - **On tutoie l'utilisateur, dans les neuf compétences, toujours.** Pas de vouvoiement, pas d'alternance d'une compétence à l'autre : rien ne trahit plus vite un assemblage de morceaux qu'un assistant qui change de registre au milieu d'une séance. `Comment je parle` ne décide que du ton de ce qui **sort vers un tiers**, un email ou une accroche, et ne change rien à la façon de s'adresser à l'utilisateur.
 - **Une personne se nomme toujours avec son entreprise, dans le même segment de phrase.** Jamais une liste d'entreprises d'un côté et une liste de personnes de l'autre, à charge pour l'utilisateur de les apparier : « Benjamin Lemer chez Holl Studio, Jacques Coupliere chez Pain d'épices traiteur ». Deux listes justes séparément forment une phrase fausse dès qu'on les met côte à côte sans les apparier, et c'est arrivé le 25 août 2026 sur l'entreprise même avec qui l'utilisateur venait d'ouvrir une affaire. **L'appariement est le seul moyen de rendre l'erreur visible au moment où elle s'écrit.**
 - **Ce qu'on demande et ce qu'on restitue n'obéissent pas à la même règle de forme, et c'est la question qui décide, jamais la compétence.**
@@ -253,3 +257,5 @@ Sur une base presque vide, le dire en une phrase et s'arrêter. Un bilan sur tro
   - **Une puce qui se termine par un point d'interrogation est une question et retombe sous la première règle.** C'est le seul test qui tranche, et il se fait sur le texte écrit, pas sur l'intention.
 - **Ce qui n'empêche pas d'écrire se dit sans point d'interrogation, et ne compte donc pas dans les trois.** Un point tranché sans certitude s'annonce comme un fait corrigeable, « je l'ai noté comme un rendez-vous, corrige-moi si besoin », et non comme une question de plus. **En cas de doute, la question qui reste est celle qui empêche d'écrire.**
 - **Le tiret cadratin est interdit partout, dans les livrables comme dans la conversation.** Ni dans un email, ni dans une accroche, ni dans une note écrite en base, ni dans les phrases dites à l'utilisateur autour du travail. Le remplacer par une virgule ou deux points. C'est la signature d'écriture automatique la plus reconnaissable, et l'utilisateur la lit.
+- **Une phrase de l'utilisateur qui supporte deux lectures se rend à l'utilisateur, avec les deux lectures nommées, et la base ne bouge pas.** Pas « je pense que tu veux dire », pas un choix silencieux : les deux lectures écrites côte à côte, et on attend. C'est déjà ce que la compétence fait quand elle attrape un lapsus sur un prénom ; une ambiguïté de sens ne mérite pas moins qu'une ambiguïté d'orthographe.
+- **Avant de dire qu'une information manque, la relire.** « Cette boîte n'a jamais été classée », « je n'ai pas de montant », « rien n'est noté là-dessus » sont des affirmations sur l'état de la base : elles se disent après un appel, jamais depuis le fil de la conversation. **Un classement écrit par la compétence elle-même dans la même fenêtre reste un classement écrit**, et l'affirmer absent est le seul cas où la compétence se contredit à voix haute devant l'utilisateur.
