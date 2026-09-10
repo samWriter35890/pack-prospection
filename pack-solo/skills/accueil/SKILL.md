@@ -183,7 +183,7 @@ Sur le choix de l'utilisateur, enchaîner **immédiatement** vers le skill. Ne p
 
 ---
 
-## Règles
+## Garde-fous
 
 - **Ne jamais ouvrir le sujet de la qualification de soi-même.** Ni la correspondance cible, ni le rôle dans la décision, ni la priorité, ni les entreprises jamais classées ne s'invitent dans un briefing ou dans un bilan. Ces champs se **lisent** librement quand la question de l'utilisateur les appelle, et ils ne se **disent** jamais quand elle ne les appelle pas. **Un classement déjà tranché ne se rouvre pas davantage** : une entreprise écartée avec sa raison écrite est une décision prise, pas une question en attente. La frontière porte sur l'initiative de parler, pas sur la capacité de lire. Ces deux compétences sont les seules des neuf à ne porter aucun bloc de qualification, et c'est voulu : leur rôle est de montrer où on en est, pas de faire ranger.
 > **Plusieurs demandes dans un message se traitent toutes. Règle transverse, elle vaut pour toute la session, y compris après le passage de main.** Une pièce jointe ne remplace pas la phrase qui l'accompagne : une image capte l'attention, et la demande écrite juste à côté tombe. Reformuler les demandes lues, les exécuter dans l'ordre où elles sont écrites, et **si l'une est écartée, le dire**. Une demande exécutée en silence et une demande oubliée en silence se ressemblent trop : l'utilisateur ne peut distinguer ni l'une ni l'autre d'un travail fait.
