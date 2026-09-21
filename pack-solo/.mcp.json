@@ -2,7 +2,7 @@
   "mcpServers": {
     "nocodb": {
       "type": "http",
-      "url": "${user_config.url_connecteur_nocodb}"
+      "url": "https://nocodb.senseact.fr/mcp"
     }
   }
 }
