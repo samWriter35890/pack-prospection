@@ -14,7 +14,7 @@
     {
       "name": "pack-solo",
       "source": "./pack-solo",
-      "description": "Assistant commercial du Pack Solo SenseAct : contacts, echanges, opportunites, relances et bilans, dans votre base NoCoDB.",
+      "description": "Assistant commercial du Pack Solo SenseAct : contacts, echanges, opportunites, relances, bilans et identite des entreprises, dans votre base NoCoDB.",
       "version": "2.8.0",
       "author": {
         "name": "SenseAct",

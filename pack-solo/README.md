@@ -6,7 +6,7 @@ Le Pack Solo est édité par [SenseAct](https://senseact.fr), agence d'automatis
 
 ## Ce qu'il sait faire
 
-Neuf compétences, qui se déclenchent toutes seules quand vous en parlez. Vous n'avez aucun nom à retenir : dites les choses comme vous les diriez à un collègue.
+Dix compétences, qui se déclenchent toutes seules quand vous en parlez. Vous n'avez aucun nom à retenir : dites les choses comme vous les diriez à un collègue.
 
 | Quand vous | Il |
 |---|---|
@@ -19,6 +19,7 @@ Neuf compétences, qui se déclenchent toutes seules quand vous en parlez. Vous 
 | lui collez une capture d'écran LinkedIn | met la base à jour à partir de ce qu'il y lit |
 | demandez où vous en êtes | fait le bilan : pipeline, chiffre en cours, retards, affaires dormantes |
 | parlez de vos objectifs | compare le réel à ce que vous vous étiez fixé |
+| avez besoin du SIRET d'une entreprise, pour un devis | cherche l'entreprise dans le registre officiel, vous montre ce qu'il trouve, et ne complète sa fiche qu'après votre oui |
 
 **Ce qu'il ne fait jamais :** envoyer un email ou une invitation à votre place, inventer une information qu'il n'a pas, ni écrire quoi que ce soit dans votre base sans que vous l'ayez dit. Il propose, vous décidez.
 
@@ -39,4 +40,4 @@ Puis ouvrez une session et dites simplement bonjour. L'assistant doit vous répo
 
 **contact@senseact.fr** · [senseact.fr](https://senseact.fr)
 
-Votre aide-mémoire, « Les 11 phrases qui suffisent », vous a été remis à la mise en main. Tout y est.
+Votre aide-mémoire, « Les 12 phrases qui suffisent », vous a été remis à la mise en main. Tout y est.
