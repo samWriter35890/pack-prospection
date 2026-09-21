@@ -17,15 +17,16 @@ Le quotidien n'est pas ici : les relances du jour, les réponses reçues et les 
 
 ## Conventions d'appel de la base
 
-- **Résoudre les identifiants de table avec `getTablesList`, une fois par session.** Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
+- **Résoudre les identifiants de table avec `getTablesList`, une fois par fenêtre.** Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
 - **Le paramètre qui porte la table s'appelle `tableId`, jamais `table`.** Un appel juste sur tout le reste, filtre, `fields` et tri compris, échoue **en entier** sur `MCP error -32602: Input validation error`, avec `"path": ["tableId"], "message": "Required"`. Les appels écrits plus bas nomment la table en clair pour se lire, c'est la clé `tableId` qui la reçoit.
+- **Une écriture voyage dans `records`, et chaque enregistrement dans `fields`.** `createRecords` attend `{"records": [{"fields": {…}}]}`, `updateRecords` attend `{"records": [{"id": n, "fields": {…}}]}`, et `deleteRecords` attend `{"records": [{"id": n}]}`. Un enregistrement envoyé à plat échoue **en entier** sur `MCP error -32602: Input validation error`, `"path": ["records"]` puis `["records", 0, "fields"]` : deux blocs rouges sous les yeux de l'utilisateur avant que l'écriture parte, mesurés le 16 septembre 2026. Les blocs écrits plus bas montrent les champs à plat pour se lire, c'est `records[].fields` qui les reçoit.
 - **Les noms de champs s'écrivent exactement comme dans la base, accents compris.** En lecture, un nom inconnu échoue bruyamment : `Column alias 'Echeance' not found.` **En écriture, il est ignoré en silence** : les autres champs passent, celui-là reste vide, et rien ne le signale.
 - **`Dernier échange` et `Étape depuis` ressemblent à des champs calculés, et ce sont des champs que les compétences écrivent.** `Contacts.Dernier échange` porte la date du dernier échange consigné, `Opportunités.Étape depuis` la date du dernier changement d'étape. **La base ne les remplit pas** : le schéma v1.8 les voulait en rollup, l'instance ne le permet pas, la fonction `max` d'un rollup y étant réservée à un plan payant. Deux conséquences, et aucune n'est facultative : **toute écriture d'un échange réécrit `Dernier échange`**, toute écriture de `Étape` réécrit `Étape depuis`, dans le même appel et à la date de l'événement, pas à celle de la saisie ; et **une valeur vide veut dire « jamais écrit », pas « jamais d'échange »**, donc un filtre `lt` sur ces champs rend une liste incomplète tant que le parc n'est pas repassé une fois.
 - **`Ouverte` dit si une tâche ou une affaire est en cours, et il se lit avec `eq`, jamais avec `in`.** C'est une colonne **calculée par la base** : elle vaut `1` tant qu'une tâche n'est ni `Fait` ni `Annulée`, et `1` tant qu'une affaire n'est ni `Gagnée` ni `Perdue`. Elle remplace depuis le schéma v1.8 les filtres par énumération, `(Statut,in,À faire,En cours)` et `(Étape,in,Identifiée,Contactée,RDV,Proposition)`, qui se mettaient à mentir en silence dès qu'une valeur était ajoutée à la liste. **Deux règles vont avec, et aucune n'est facultative :** l'opérateur `in` échoue bruyamment sur une colonne calculée, `(Ouverte,in,1)` compris, donc `(Ouverte,eq,1)` est la seule forme valide ; et **`Ouverte` ne s'écrit jamais**, c'est `Statut` ou `Étape` qu'on écrit, la base recalcule.
 - **Relire l'enregistrement renvoyé après chaque écriture.** C'est le seul garde-fou contre une faute de frappe sur un nom de champ, et il ne coûte aucun appel : la réponse contient déjà l'enregistrement complet.
 - **Ce qui s'annonce à l'utilisateur se lit sur l'enregistrement relu, jamais sur l'appel envoyé.** Un champ ne se nomme dans une phrase de confirmation qu'après être revenu **rempli** dans la réponse. Le 25 août 2026, « Frères Boyer est classée cœur de cible avec sa raison » a été dit à l'écran alors que le champ est resté vide, et la compétence de bilan a compté une entreprise classée de trop quarante minutes plus tard. **Un champ annoncé et absent est pire qu'un champ absent** : il éteint la seule vérification que l'utilisateur pouvait faire, et le mensonge se propage ensuite dans les chiffres.
 - **Les dates s'écrivent `AAAA-MM-JJ`.**
-- **Un tri s'écrit `sort=[{"field": "Date", "description": "desc"}]`.** La clé qui porte le sens s'appelle bien `description`, c'est un défaut de nommage du connecteur. Une chaîne comme `"Date desc"` est refusée.
+- **Un tri s'écrit `sort=[{"field": "Date", "direction": "desc"}]`.** La clé qui porte le sens s'appelle `direction`, et c'est la seule admise : `description`, l'ancien nom, est refusé par le connecteur, `Required at sort[0].direction`. Une chaîne comme `"Date desc"` est refusée aussi.
 - **Filtrer et compter côté requête**, jamais en rapatriant la table pour compter soi-même. C'est la règle qui rend ce skill tenable sans dashboard natif.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Un champ de **compteur de liens**, lui, survit à `fields`.
 - **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
@@ -43,14 +44,15 @@ Le quotidien n'est pas ici : les relances du jour, les réponses reçues et les 
 
 `aggregate` calcule sommes et comptages côté serveur, sur **plusieurs filtres en un seul appel**. C'est lui qui rend un bilan complet possible en deux ou trois allers-retours. Il a deux comportements à connaître, tous deux vérifiés sur la base de référence.
 
-> **1. `aggregate` ne comprend que les identifiants de colonne, jamais les titres.** Un titre de champ renvoie `{}`, **sans message d'erreur**. C'est la seule réponse silencieuse observée sur ce MCP : partout ailleurs un nom approché échoue bruyamment. Lire donc `getTableSchema` sur les tables concernées, une fois par session, et retenir les `id` des colonnes utiles.
+> **1. `aggregate` ne comprend que les identifiants de colonne, jamais les titres.** Un titre de champ renvoie `{}`, **sans message d'erreur**. C'est la seule réponse silencieuse observée sur ce MCP : partout ailleurs un nom approché échoue bruyamment. Lire donc `getTableSchema` sur les tables concernées, une fois par fenêtre, et retenir les `id` des colonnes utiles.
 
 > **2. Le résultat est indexé par le titre du champ.** Deux agrégations sur le **même** champ dans un même appel s'écrasent donc, et la dernière gagne, silencieusement. Une agrégation par champ et par appel. Plusieurs champs différents dans un appel, en revanche, fonctionnent, et plusieurs `filterGroups` aussi.
 
 Forme réelle d'un appel, avec les identifiants lus dans le schéma :
 
 ```
-1. getTableSchema  Opportunités   ← toujours, une fois par session, avant tout aggregate.
+1. getTableSchema  Opportunités   ← toujours, une fois par fenêtre, avant tout aggregate.
+                                    Lu plus tôt dans la même fenêtre, il ne se relit pas
                                     Retenir les id de « Montant estimé » et de « Nom »
 2. aggregate       Opportunités
    aggregations = [
@@ -141,7 +143,7 @@ Deux nombres, pas de liste : `accueil` s'occupe du détail du jour.
 
 ```
 queryRecords  Contacts  where=(Dernier échange,lt,exactDate,<date du jour moins N jours>)
-                        sort=[{"field":"Dernier échange","description":"asc"}]
+                        sort=[{"field":"Dernier échange","direction":"asc"}]
 countRecords  Contacts  where=(Dernier échange,blank)
 ```
 
@@ -170,7 +172,7 @@ queryRecords  Opportunités  where=(Ouverte,eq,1)~and(Échanges,eq,0)~and(Create
 ```
 queryRecords  Opportunités  where=(Ouverte,eq,1)
 queryRecords  Échanges      where=(Date,isWithin,pastNumberOfDays,30)~and(Opportunité,notblank)
-                            sort=[{"field": "Date", "description": "desc"}]  pageSize=100
+                            sort=[{"field": "Date", "direction": "desc"}]  pageSize=100
 ```
 
 Les affaires en cours qui n'apparaissent dans aucun de ces échanges sont les dormantes. Ne pas passer `fields` sur le second appel : c'est le libellé de l'opportunité liée qui permet le rapprochement, et il disparaît dès qu'on filtre les champs.

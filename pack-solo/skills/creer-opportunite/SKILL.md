@@ -13,8 +13,9 @@ Appelé directement, ou depuis `enregistrer-echange` quand le récit décrit une
 
 ## Conventions d'appel de la base
 
-- **Résoudre les identifiants de table avec `getTablesList`, une fois par session.** Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
+- **Résoudre les identifiants de table avec `getTablesList`, une fois par fenêtre.** Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
 - **Le paramètre qui porte la table s'appelle `tableId`, jamais `table`.** Un appel juste sur tout le reste, filtre, `fields` et tri compris, échoue **en entier** sur `MCP error -32602: Input validation error`, avec `"path": ["tableId"], "message": "Required"`. Les appels écrits plus bas nomment la table en clair pour se lire, c'est la clé `tableId` qui la reçoit.
+- **Une écriture voyage dans `records`, et chaque enregistrement dans `fields`.** `createRecords` attend `{"records": [{"fields": {…}}]}`, `updateRecords` attend `{"records": [{"id": n, "fields": {…}}]}`, et `deleteRecords` attend `{"records": [{"id": n}]}`. Un enregistrement envoyé à plat échoue **en entier** sur `MCP error -32602: Input validation error`, `"path": ["records"]` puis `["records", 0, "fields"]` : deux blocs rouges sous les yeux de l'utilisateur avant que l'écriture parte, mesurés le 16 septembre 2026. Les blocs écrits plus bas montrent les champs à plat pour se lire, c'est `records[].fields` qui les reçoit.
 - **Les noms de champs s'écrivent exactement comme dans la base, accents compris.** En lecture, un nom inconnu échoue bruyamment : `Column alias 'Echeance' not found.` **En écriture, il est ignoré en silence** : les autres champs passent, celui-là reste vide, et rien ne le signale.
 - **`Dernier échange` et `Étape depuis` ressemblent à des champs calculés, et ce sont des champs que les compétences écrivent.** `Contacts.Dernier échange` porte la date du dernier échange consigné, `Opportunités.Étape depuis` la date du dernier changement d'étape. **La base ne les remplit pas** : le schéma v1.8 les voulait en rollup, l'instance ne le permet pas, la fonction `max` d'un rollup y étant réservée à un plan payant. Deux conséquences, et aucune n'est facultative : **toute écriture d'un échange réécrit `Dernier échange`**, toute écriture de `Étape` réécrit `Étape depuis`, dans le même appel et à la date de l'événement, pas à celle de la saisie ; et **une valeur vide veut dire « jamais écrit », pas « jamais d'échange »**, donc un filtre `lt` sur ces champs rend une liste incomplète tant que le parc n'est pas repassé une fois.
 - **`Ouverte` dit si une tâche ou une affaire est en cours, et il se lit avec `eq`, jamais avec `in`.** C'est une colonne **calculée par la base** : elle vaut `1` tant qu'une tâche n'est ni `Fait` ni `Annulée`, et `1` tant qu'une affaire n'est ni `Gagnée` ni `Perdue`. Elle remplace depuis le schéma v1.8 les filtres par énumération, `(Statut,in,À faire,En cours)` et `(Étape,in,Identifiée,Contactée,RDV,Proposition)`, qui se mettaient à mentir en silence dès qu'une valeur était ajoutée à la liste. **Deux règles vont avec, et aucune n'est facultative :** l'opérateur `in` échoue bruyamment sur une colonne calculée, `(Ouverte,in,1)` compris, donc `(Ouverte,eq,1)` est la seule forme valide ; et **`Ouverte` ne s'écrit jamais**, c'est `Statut` ou `Étape` qu'on écrit, la base recalcule.
@@ -30,7 +31,7 @@ Appelé directement, ou depuis `enregistrer-echange` quand le récit décrit une
 
 ---
 
-## Le contexte du client, lu une fois par session
+## Le contexte du client, lu une fois par fenêtre
 
 Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, où l'on réserve un rendez-vous avec lui, et ce qu'il ne fait pas.
 
@@ -41,7 +42,7 @@ queryRecords  Contexte  pageSize=1
                       "Signature", "Lien de réservation", "Ce que je ne fais pas"]
 ```
 
-**Une fois par session, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base.
+**Une fois par fenêtre, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base.
 
 **Lire les dix champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et les autres skills s'en serviront ensuite sans repayer l'appel.
 
@@ -101,7 +102,7 @@ Le `Id` du contact, et celui de son organisation. L'organisation se lit sur la f
 
 ```
 1. queryRecords  Échanges       where=(Contact,eq,Jean-Pierre Papin)
-                                sort=[{"field":"Date","description":"desc"}]  pageSize=3
+                                sort=[{"field":"Date","direction":"desc"}]  pageSize=3
                                 ← toujours, avant toute création. Zéro résultat est une
                                   réponse, pas une dispense d'appeler
 2. createRecords Opportunités
@@ -171,7 +172,9 @@ Une même phrase déclenche souvent les deux compétences, « j'étais en RDV ch
 
 Le cas arrive, et il est intéressant plutôt qu'anormal : une recommandation, un besoin inattendu, une boîte jugée à côté il y a six mois. **L'affaire se crée normalement**, puis une phrase le dit, une seule, sans insister :
 
-> C'est ouvert. Petite chose : cette boîte est notée comme à côté de ce que tu cherches. Ça arrive, dis-moi juste s'il faut la reclasser.
+> C'est ouvert. Petite chose : tu avais mis cette boîte de côté le 14 septembre 2026, parce qu'ils ont embauché un alternant pour intégrer l'IA en interne. Ça arrive, dis-moi juste s'il faut la reclasser.
+
+**La date et la raison sont celles lues dans `Pourquoi eux`, recopiées, la date en clair.** Sans raison écrite, la phrase dit seulement « cette boîte est notée comme à côté de ce que tu cherches », et jamais « depuis ce matin » ni « aujourd'hui » : une date qui n'est pas dans le champ ne se raconte pas.
 
 Deux suites, et les deux sont bonnes : l'utilisateur reclasse l'entreprise, et on écrit `Correspondance cible` ; ou il confirme que c'est une exception, et **on n'écrit rien du tout**, y compris pas `À qualifier`. Ne jamais reposer la question à l'affaire suivante chez la même entreprise.
 
@@ -223,6 +226,14 @@ createRecords  Tâches
 | `Statut` | À faire · En cours · Fait · Annulée |
 
 Sans délai annoncé, proposer une semaine plutôt que de laisser le champ vide : une tâche sans échéance ne remonte jamais dans « Ma journée ».
+
+**Et c'est le moment où l'entreprise doit être facturable.** Un devis porte un SIRET et une adresse. Au passage à `Proposition`, lire l'organisation du contact :
+
+```
+queryRecords  Organisations  where=(Nom,eq,Toto)  fields=["Nom","SIRET"]
+```
+
+Si `SIRET` est vide, une phrase après la confirmation, une seule : « Je n'ai ni le SIRET ni l'adresse de Toto pour ton devis, tu veux que je cherche sa fiche ? ». Un oui déclenche la recherche d'identité publique, qui est un geste à part ; un silence ne relance rien, et la question ne revient pas à l'étape suivante.
 
 ### 5. Clore une affaire
 

@@ -17,7 +17,7 @@ Ouvre la journée de travail commercial. Ce skill **lit** la base, restitue l'es
 
 ---
 
-## Le contexte du client, lu une fois par session
+## Le contexte du client, lu une fois par fenêtre
 
 Avant tout, lire la table `Contexte`. Elle porte **un seul enregistrement** : qui est l'utilisateur, ce qu'il vend, à qui, ce qui le distingue, ce qui coince, comment il parle, comment il signe, où l'on réserve un rendez-vous avec lui, et ce qu'il ne fait pas.
 
@@ -28,7 +28,7 @@ queryRecords  Contexte  pageSize=1
                       "Signature", "Lien de réservation", "Ce que je ne fais pas"]
 ```
 
-**Une fois par session, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base.
+**Une fois par fenêtre, jamais une fois par appel.** Ce contexte est stable : il se remplit à la mise en main et se revoit une fois par an. S'il a déjà été lu dans la conversation, le réutiliser tel quel sans rappeler la base.
 
 **Lire les dix champs, même ceux dont ce skill n'a pas l'usage.** C'est délibéré : la lecture sert toute la session, et `rediger-email`, `accroche-linkedin` ou `creer-opportunite` s'en serviront ensuite sans repayer l'appel. Un skill qui n'en lirait que trois obligerait le suivant à tout relire.
 
@@ -44,7 +44,7 @@ Ce que ce skill en fait, lui : s'adresser à l'utilisateur par son prénom, **en
 
 ## Lire l'état, en quatre appels et deux comptages
 
-Résoudre d'abord les identifiants de table avec `getTablesList`, une seule fois par session. Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
+Résoudre d'abord les identifiants de table avec `getTablesList`, une seule fois par fenêtre. Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
 
 - **Le paramètre qui porte la table s'appelle `tableId`, jamais `table`.** Un appel juste sur tout le reste, filtre, `fields` et tri compris, échoue **en entier** sur `MCP error -32602: Input validation error`, avec `"path": ["tableId"], "message": "Required"`. Les appels écrits plus bas nomment la table en clair pour se lire, c'est la clé `tableId` qui la reçoit.
 - **Les noms de champs s'écrivent exactement comme dans la base, accents compris.** Un nom inconnu échoue bruyamment, `Column alias 'Echeance' not found.`, et fait tomber **tout l'appel** : `Échéance`, `Prénom`, `Étape`, `Clôture prévue` se recopient avec leurs accents, dans `fields` comme dans `where`. Ici l'échec est visible, donc sans danger, mais un des quatre appels d'état perdu, c'est un quart du briefing muet sans que rien ne le dise à l'utilisateur : **un appel d'état qui échoue se rejoue, il ne se saute pas**.
@@ -78,7 +78,7 @@ Sur Contacts, demander `fields` : `["Nom complet", "Prochaine relance", "Statut 
 
 > **Un état vide se dit vide.** Si les quatre listes ne rendent rien, le dire en une phrase, proposer de prospecter ou d'ouvrir le tableau de bord, et **s'arrêter là**. Le vide est une information, ce n'est pas un manque à combler : ne jamais aller chercher de la matière ailleurs pour remplir le briefing.
 
-> **Un tri s'écrit `sort=[{"field": "Rang priorité", "description": "asc"}, {"field": "Échéance", "description": "asc"}]`.** La clé qui porte le sens s'appelle bien `description`, c'est un défaut de nommage du connecteur. Une chaîne comme `"Date desc"` est refusée.
+> **Un tri s'écrit `sort=[{"field": "Rang priorité", "direction": "asc"}, {"field": "Échéance", "direction": "asc"}]`.** La clé qui porte le sens s'appelle `direction`, et c'est la seule admise : `description`, l'ancien nom, est refusé par le connecteur, `Required at sort[0].direction`. Une chaîne comme `"Date desc"` est refusée aussi.
 
 > **Le tri des tâches passe par `Rang priorité`, jamais par `Priorité`.** NoCoDB trie un select par ordre alphabétique de la valeur : un tri sur `Priorité` donnerait Basse avant Haute. `Rang priorité` est le champ technique qui porte le bon ordre.
 

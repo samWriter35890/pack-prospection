@@ -23,15 +23,16 @@ Répond à **« où j'en suis de ce que je m'étais fixé »**. Lit les objectif
 
 ## Conventions d'appel de la base
 
-- **Résoudre les identifiants de table avec `getTablesList`, une fois par session.** Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
+- **Résoudre les identifiants de table avec `getTablesList`, une fois par fenêtre.** Ne jamais écrire un identifiant en dur : il change d'une base à l'autre.
 - **Le paramètre qui porte la table s'appelle `tableId`, jamais `table`.** Un appel juste sur tout le reste, filtre, `fields` et tri compris, échoue **en entier** sur `MCP error -32602: Input validation error`, avec `"path": ["tableId"], "message": "Required"`. Les appels écrits plus bas nomment la table en clair pour se lire, c'est la clé `tableId` qui la reçoit.
+- **Une écriture voyage dans `records`, et chaque enregistrement dans `fields`.** `createRecords` attend `{"records": [{"fields": {…}}]}`, `updateRecords` attend `{"records": [{"id": n, "fields": {…}}]}`, et `deleteRecords` attend `{"records": [{"id": n}]}`. Un enregistrement envoyé à plat échoue **en entier** sur `MCP error -32602: Input validation error`, `"path": ["records"]` puis `["records", 0, "fields"]` : deux blocs rouges sous les yeux de l'utilisateur avant que l'écriture parte, mesurés le 16 septembre 2026. Les blocs écrits plus bas montrent les champs à plat pour se lire, c'est `records[].fields` qui les reçoit.
 - **Les noms de champs s'écrivent exactement comme dans la base, accents compris.** En lecture, un nom inconnu échoue bruyamment : `Column alias 'Echeance' not found.` **En écriture, il est ignoré en silence** : les autres champs passent, celui-là reste vide, et rien ne le signale.
 - **`Dernier échange` et `Étape depuis` ressemblent à des champs calculés, et ce sont des champs que les compétences écrivent.** `Contacts.Dernier échange` porte la date du dernier échange consigné, `Opportunités.Étape depuis` la date du dernier changement d'étape. **La base ne les remplit pas** : le schéma v1.8 les voulait en rollup, l'instance ne le permet pas, la fonction `max` d'un rollup y étant réservée à un plan payant. Deux conséquences, et aucune n'est facultative : **toute écriture d'un échange réécrit `Dernier échange`**, toute écriture de `Étape` réécrit `Étape depuis`, dans le même appel et à la date de l'événement, pas à celle de la saisie ; et **une valeur vide veut dire « jamais écrit », pas « jamais d'échange »**, donc un filtre `lt` sur ces champs rend une liste incomplète tant que le parc n'est pas repassé une fois.
 - **`Ouverte` dit si une tâche ou une affaire est en cours, et il se lit avec `eq`, jamais avec `in`.** C'est une colonne **calculée par la base** : elle vaut `1` tant qu'une tâche n'est ni `Fait` ni `Annulée`, et `1` tant qu'une affaire n'est ni `Gagnée` ni `Perdue`. Elle remplace depuis le schéma v1.8 les filtres par énumération, `(Statut,in,À faire,En cours)` et `(Étape,in,Identifiée,Contactée,RDV,Proposition)`, qui se mettaient à mentir en silence dès qu'une valeur était ajoutée à la liste. **Deux règles vont avec, et aucune n'est facultative :** l'opérateur `in` échoue bruyamment sur une colonne calculée, `(Ouverte,in,1)` compris, donc `(Ouverte,eq,1)` est la seule forme valide ; et **`Ouverte` ne s'écrit jamais**, c'est `Statut` ou `Étape` qu'on écrit, la base recalcule.
 - **Relire l'enregistrement renvoyé après chaque écriture.** C'est le seul garde-fou contre une faute de frappe sur un nom de champ, et il ne coûte aucun appel : la réponse contient déjà l'enregistrement complet.
 - **Ce qui s'annonce à l'utilisateur se lit sur l'enregistrement relu, jamais sur l'appel envoyé.** Un champ ne se nomme dans une phrase de confirmation qu'après être revenu **rempli** dans la réponse. Le 25 août 2026, « Frères Boyer est classée cœur de cible avec sa raison » a été dit à l'écran alors que le champ est resté vide, et la compétence de bilan a compté une entreprise classée de trop quarante minutes plus tard. **Un champ annoncé et absent est pire qu'un champ absent** : il éteint la seule vérification que l'utilisateur pouvait faire, et le mensonge se propage ensuite dans les chiffres.
 - **Les dates s'écrivent `AAAA-MM-JJ`.**
-- **Un tri s'écrit `sort=[{"field": "Échéance", "description": "asc"}]`.** La clé qui porte le sens s'appelle bien `description`, c'est un défaut de nommage du connecteur. Une chaîne comme `"Échéance asc"` est refusée.
+- **Un tri s'écrit `sort=[{"field": "Échéance", "direction": "asc"}]`.** La clé qui porte le sens s'appelle `direction`, et c'est la seule admise : `description`, l'ancien nom, est refusé par le connecteur, `Required at sort[0].direction`. Une chaîne comme `"Échéance asc"` est refusée aussi.
 - **Filtrer et compter côté requête**, jamais en rapatriant la table pour compter soi-même.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
 - **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
@@ -77,7 +78,7 @@ Trois champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation
 
 ```
 queryRecords  Objectifs  where=(Statut,eq,En cours)
-              sort=[{"field": "Échéance", "description": "asc"}]
+              sort=[{"field": "Échéance", "direction": "asc"}]
               fields=["Objectif","Indicateur","Cible","Période","Début","Échéance","Statut","Notes"]
 ```
 
@@ -130,7 +131,8 @@ countRecords  Échanges
 Et pour le chiffre signé, seul indicateur qui soit une somme :
 
 ```
-1. getTableSchema  Opportunités   ← toujours, une fois par session, avant tout aggregate.
+1. getTableSchema  Opportunités   ← toujours, une fois par fenêtre, avant tout aggregate.
+                                    Lu plus tôt dans la même fenêtre, il ne se relit pas
                                     Retenir les id de « Montant estimé » et de « Nom »
 2. aggregate       Opportunités
    aggregations = [ { field: "<id de Montant estimé>", type: "sum" },
@@ -141,7 +143,7 @@ Et pour le chiffre signé, seul indicateur qui soit une somme :
 
 > **Un `aggregate` qui rend `{}`, `null` ou un total à zéro ne se publie pas.** C'est la seule réponse silencieuse du connecteur, et un zéro crédible est plus dangereux qu'une erreur. Le repli est `countRecords` sur le même filtre, pris **en silence** : l'utilisateur n'a pas à savoir quel outil a servi. **Un chiffre publié vient de l'appel qui l'a rendu, jamais d'un calcul de rattrapage sur une liste déjà lue.**
 
-> **`aggregate` ne comprend que les identifiants de colonne, jamais les titres.** Un titre renvoie `{}`, **sans message d'erreur** : c'est la seule réponse silencieuse de ce connecteur. Lire `getTableSchema` une fois par session sur Opportunités, et ne s'en servir que pour l'indicateur « Chiffre signé ». Les six autres passent par `countRecords`, qui n'a besoin d'aucun identifiant de colonne.
+> **`aggregate` ne comprend que les identifiants de colonne, jamais les titres.** Un titre renvoie `{}`, **sans message d'erreur** : c'est la seule réponse silencieuse de ce connecteur. Lire `getTableSchema` une fois par fenêtre sur Opportunités, et ne s'en servir que pour l'indicateur « Chiffre signé ». Les six autres passent par `countRecords`, qui n'a besoin d'aucun identifiant de colonne.
 
 > **« Propositions en cours » est un stock, pas un flux, et cela se dit à l'utilisateur.** La base ne garde **aucun historique d'étape**. `Opportunités.Étape depuis` dit depuis quand une affaire est là où elle est, il ne dit pas par où elle est passée, et il est écrasé à chaque bascule : une affaire passée de Proposition à Gagnée n'a laissé aucune trace de son passage en proposition. On sait donc combien d'affaires sont en proposition **aujourd'hui**, jamais combien en ont été émises dans le mois. Formuler au présent, toujours : « tu as 3 propositions en cours », jamais « tu as fait 3 propositions ce mois-ci ». La seconde phrase serait une invention, et elle passerait inaperçue.
 
