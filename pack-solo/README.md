@@ -26,15 +26,15 @@ Dix compétences, qui se déclenchent toutes seules quand vous en parlez. Vous n
 ## Ce qu'il vous faut
 
 - **Claude Desktop**, avec un abonnement Claude payant. Les plugins y sont réservés.
-- **Votre base NoCoDB**, préparée et livrée par SenseAct. Vos données restent chez vous.
+- **Votre base NoCoDB**, préparée par SenseAct, et un compte sur cette base, ouvert par invitation. Vos données restent chez vous.
 
 ## Installer
 
-Vous recevez de SenseAct une **archive préparée pour vous**, déjà réglée sur votre base. Dans Claude Desktop : `Customize`, onglet `Plugins`, téléverser l'archive, activer.
+Dans Claude Desktop : `Customize`, onglet `Plugins`, « Ajouter une place de marché » avec l'adresse remise par SenseAct, puis installer **Pack Solo** et l'activer. Dans l'onglet `Connecteurs` du plugin, connectez votre base : Claude ouvre la page de connexion de votre base, vous vous identifiez avec le compte que SenseAct vous a ouvert, vous choisissez votre base, et vous autorisez. Ce geste se fait une fois.
 
-Puis ouvrez une session et dites simplement bonjour. L'assistant doit vous répondre par le point du jour, lu dans votre base. Si rien ne se passe, vérifiez que le plugin est bien activé et rappelez-nous.
+Puis ouvrez une session et dites simplement bonjour. L'assistant doit vous répondre par le point du jour, lu dans votre base. Si rien ne se passe, vérifiez que le plugin est bien activé et que le connecteur est marqué « Connecté », puis rappelez-nous.
 
-> **L'adresse de votre base tient lieu de mot de passe.** Elle est déjà dans l'archive, vous n'avez rien à saisir. Ne la partagez pas, ne la montrez pas en partage d'écran, et ne transmettez pas l'archive à un tiers : elle donne accès à vos données.
+> **Votre compte sur la base est personnel.** Il donne accès à vos données : ne partagez pas son mot de passe, et demandez-nous un compte de plus plutôt que de prêter le vôtre.
 
 ## Une question, un problème
 
