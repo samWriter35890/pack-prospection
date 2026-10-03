@@ -15,17 +15,18 @@ Transforme un récit parlé en une trace propre dans le journal : un Échange da
 - **Le paramètre qui porte la table s'appelle `tableId`, jamais `table`.** Un appel juste sur tout le reste, filtre, `fields` et tri compris, échoue **en entier** sur `MCP error -32602: Input validation error`, avec `"path": ["tableId"], "message": "Required"`. Les appels écrits plus bas nomment la table en clair pour se lire, c'est la clé `tableId` qui la reçoit.
 - **Une écriture voyage dans `records`, et chaque enregistrement dans `fields`.** `createRecords` attend `{"records": [{"fields": {…}}]}`, `updateRecords` attend `{"records": [{"id": n, "fields": {…}}]}`, et `deleteRecords` attend `{"records": [{"id": n}]}`. Un enregistrement envoyé à plat échoue **en entier** sur `MCP error -32602: Input validation error`, `"path": ["records"]` puis `["records", 0, "fields"]` : deux blocs rouges sous les yeux de l'utilisateur avant que l'écriture parte, mesurés le 16 septembre 2026. Les blocs écrits plus bas montrent les champs à plat pour se lire, c'est `records[].fields` qui les reçoit.
 - **Les noms de champs s'écrivent exactement comme dans la base, accents compris.** En lecture, un nom inconnu échoue bruyamment : `Column alias 'Echeance' not found.` **En écriture, il est ignoré en silence** : les autres champs passent, celui-là reste vide, et rien ne le signale.
-- **`Dernier échange` et `Étape depuis` ressemblent à des champs calculés, et ce sont des champs que les compétences écrivent.** `Contacts.Dernier échange` porte la date du dernier échange consigné, `Opportunités.Étape depuis` la date du dernier changement d'étape. **La base ne les remplit pas** : le schéma v1.8 les voulait en rollup, l'instance ne le permet pas, la fonction `max` d'un rollup y étant réservée à un plan payant. Deux conséquences, et aucune n'est facultative : **toute écriture d'un échange réécrit `Dernier échange`**, toute écriture de `Étape` réécrit `Étape depuis`, dans le même appel et à la date de l'événement, pas à celle de la saisie ; et **une valeur vide veut dire « jamais écrit », pas « jamais d'échange »**, donc un filtre `lt` sur ces champs rend une liste incomplète tant que le parc n'est pas repassé une fois.
+- **`Dernier échange` et `Étape depuis` ressemblent à des champs calculés, et ce sont des champs que les compétences écrivent.** `Contacts.Dernier échange` porte la date du dernier échange consigné, `Opportunités.Étape depuis` la date du dernier changement d'étape. **La base ne les remplit pas** : le schéma v1.8 les voulait en rollup, l'instance ne le permet pas, la fonction `max` d'un rollup y étant réservée à un plan payant. Deux conséquences, et aucune n'est facultative : **toute écriture d'un échange réécrit `Dernier échange`**, toute écriture de `Étape` réécrit `Étape depuis`, dans le même appel et à la date de l'événement, pas à celle de la saisie ; et **une valeur vide veut dire « jamais écrit », pas « jamais d'échange »**, donc un contact ou une affaire sans date ne sort jamais d'un filtre `lt` : il se compte à part, et ne se comble jamais par une date inventée.
 - **`Ouverte` dit si une tâche ou une affaire est en cours, et il se lit avec `eq`, jamais avec `in`.** C'est une colonne **calculée par la base** : elle vaut `1` tant qu'une tâche n'est ni `Fait` ni `Annulée`, et `1` tant qu'une affaire n'est ni `Gagnée` ni `Perdue`. Elle remplace depuis le schéma v1.8 les filtres par énumération, `(Statut,in,À faire,En cours)` et `(Étape,in,Identifiée,Contactée,RDV,Proposition)`, qui se mettaient à mentir en silence dès qu'une valeur était ajoutée à la liste. **Deux règles vont avec, et aucune n'est facultative :** l'opérateur `in` échoue bruyamment sur une colonne calculée, `(Ouverte,in,1)` compris, donc `(Ouverte,eq,1)` est la seule forme valide ; et **`Ouverte` ne s'écrit jamais**, c'est `Statut` ou `Étape` qu'on écrit, la base recalcule.
 - **Relire l'enregistrement renvoyé après chaque écriture.** C'est le seul garde-fou contre une faute de frappe sur un nom de champ, et il ne coûte aucun appel : la réponse contient déjà l'enregistrement complet.
 - **Ce qui s'annonce à l'utilisateur se lit sur l'enregistrement relu, jamais sur l'appel envoyé.** Un champ ne se nomme dans une phrase de confirmation qu'après être revenu **rempli** dans la réponse. Le 25 août 2026, « Frères Boyer est classée cœur de cible avec sa raison » a été dit à l'écran alors que le champ est resté vide, et la compétence de bilan a compté une entreprise classée de trop quarante minutes plus tard. **Un champ annoncé et absent est pire qu'un champ absent** : il éteint la seule vérification que l'utilisateur pouvait faire, et le mensonge se propage ensuite dans les chiffres.
 - **Les dates s'écrivent `AAAA-MM-JJ`.**
+- **Une heure lue en base est en temps universel, jamais en heure de Paris.** `CreatedAt`, `UpdatedAt` et tout champ date et heure reviennent en UTC : `10:16` en base veut dire 12 h 16 à Paris en été, 11 h 16 en hiver, et après 22 h en été le jour lui-même change. **Une heure se dit convertie, ou ne se dit pas** : la date suffit presque toujours. Le 23 septembre 2026, un échange consigné à 12 h 16 a été annoncé « noté ce matin à 10h16 ».
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien à la création, et par sa colonne de clé étrangère ensuite.** `updateRecords` sur un **champ de lien** échoue toujours, quelle que soit la forme employée, sur `SQLITE_ERROR: near "(": syntax error` : c'est une limite du connecteur, pas une faute de syntaxe. Mais la même relation porte aussi une **colonne de clé étrangère**, de la forme `nc_<préfixe>___<Table liée>_id`, et **celle-là s'écrit en `updateRecords` comme un champ ordinaire** : `{"nc_h27z___Opportunités_id": 3}` rattache l'enregistrement à l'affaire n° 3, et le lien revient résolu avec son libellé dès la réponse. **Le nom exact de cette colonne se lit dans un `getRecord` sur la table concernée, jamais de mémoire** : le préfixe est propre à chaque base et il change d'un client à l'autre. **Deux conséquences :** créer dans l'ordre reste la bonne façon de faire, un lien posé à la création valant mieux qu'un rattrapage ; et **un lien oublié se répare en une écriture**, sans jamais supprimer ni recréer l'enregistrement.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste, ne jamais traduire ni abréger.
 - **Filtrer côté requête**, jamais en rapatriant la table. Syntaxe `(champ,opérateur,valeur)`, combinée par `~and` et `~or`.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`. Utiliser `fields` quand aucun nom lié n'est utile, l'omettre sinon.
 - **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
-- **Les caractères accentués s'écrivent littéralement dans un filtre, jamais échappés.** `(Prénom,like,%fabrice%)` fonctionne. Sur un **nom de colonne**, un échappement de la forme `\uXXXX` échoue bruyamment, `Column alias 'Pr\u00e9nom' not found.`, et se corrige donc tout seul. Sur une **valeur**, il rend `"records": []` **sans aucune erreur** : `(Nom,like,%g\u00e9rard%)` ne trouve pas Gérard et ne le dit pas, ce qui est indiscernable d'une absence. C'est le second échec silencieux du connecteur après `aggregate`, et le plus facile à déclencher, puisque la plupart des noms de personnes et d'entreprises français portent un accent. **Une recherche qui rend zéro résultat sur un terme accentué se rejoue une fois, en ASCII strict, avant de conclure à l'absence.** Un doublon créé sur cette base est indétectable jusqu'au jour où quelqu'un rouvre la table.
+- **Les caractères accentués s'écrivent littéralement dans un filtre, jamais échappés.** `(Prénom,like,%fabrice%)` fonctionne. Sur un **nom de colonne**, un échappement de la forme `\uXXXX` échoue bruyamment, `Column alias 'Pr\u00e9nom' not found.`, et se corrige donc tout seul. Sur une **valeur**, il rend `"records": []` **sans aucune erreur** : `(Nom,like,%g\u00e9rard%)` ne trouve pas Gérard et ne le dit pas, ce qui est indiscernable d'une absence. C'est le second échec silencieux du connecteur après `aggregate`, et le plus facile à déclencher, puisque la plupart des noms de personnes et d'entreprises français portent un accent. **Une recherche qui rend zéro résultat sur un terme accentué se rejoue une fois, en ASCII strict, avant de conclure à l'absence.** Un doublon créé sur cette base est indétectable jusqu'au jour où quelqu'un rouvre la table. **Et le terme cherché part tel que l'utilisateur l'a tapé, jamais retouché.** Retirer un accent ou un tréma est la même faute dans l'autre sens : `(Nom,like,%joia%)` ne trouve pas `Joïa`, et l'absence a été dite à voix haute le 23 septembre 2026, sur une organisation en base depuis un mois. **Sur zéro résultat, une seconde recherche part, chaque voyelle remplacée par `_`**, le joker d'un caractère, qui accepte une lettre accentuée : `%j___%` rend `Joïa`, `%g_r_rd%` rend `Fabrice Gerard`, vérifié le 2 octobre 2026. Elle ratisse plus large, donc **ses résultats se lisent avant de se dire** : ne retenir que les noms qui, accents ôtés, s'écrivent comme le terme cherché. **Seule une seconde recherche vide autorise à dire que la personne ou l'entreprise n'est pas en base.**
 - **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 ---
@@ -39,7 +40,7 @@ Trois champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation
 - **`Rôle dans la décision` se demande à la création du contact, et c'est la seule question de qualification qui ne se rate pas.** Le moment est le bon parce que c'est le seul où l'utilisateur a la personne en tête et où l'on n'interrompt rien : plus tard, il n'y en a pas. Il reste soumis à la règle du dessus, on écrit sa réponse et jamais sa fonction, et il vaudra de plus en plus cher à mesure que le produit sert à préparer des rendez-vous et pas seulement à les consigner. Le geste complet est dans `creer-contact`.
 - **Vide et « à qualifier » ne disent pas la même chose.** Vide veut dire qu'on n'a jamais demandé. `À qualifier` et `Inconnu` veulent dire qu'on a demandé et que ce n'est pas tranché. **Ne jamais reposer une question déjà posée** : un champ qui porte l'une de ces deux valeurs se laisse tranquille jusqu'à ce que l'utilisateur en dise quelque chose de neuf.
 - **La question de la cible nomme les trois rangements en français, et demande la raison dans la même phrase.** « Frères Boyer, tu les mets où : au cœur de ce que tu cherches, en périphérie, ou plutôt de côté ? Et qu'est-ce qui te fait dire ça ? » Une question qui ne demande que le motif, « qu'est-ce qui te les fait mettre là, chez eux », **ne se comprend pas**, « là » n'ayant aucun référent pour qui ne connaît pas le champ, et surtout **elle ne rapporte pas le rangement** : il faudrait alors le déduire d'une réponse en texte libre, et une classe déduite d'un motif favorable est une invention que personne ne peut vérifier. **Sans rangement explicite dans la réponse de l'utilisateur, rien ne s'écrit dans `Correspondance cible`** : la raison seule remplit `Pourquoi eux` et la correspondance reste vide, ce qui est exactement ce que « vide veut dire jamais demandé » signifie.
-- **`Pourquoi eux` porte l'histoire, pas l'état du moment.** Il dit d'abord **pourquoi cette entreprise est entrée dans la base** : ce qui, chez eux, appelle l'offre. Le jour où elle en sort, où elle passe hors cible, **la raison de la sortie s'ajoute à la ligne d'entrée, elle ne la remplace pas** : « trois devis par semaine tapés à la main, veulent industrialiser », puis « écartés le 20 août, ce qu'ils cherchent est trop loin de ce que je fais ». Une entreprise mise de côté sans raison écrite est un travail qu'on refera dans six mois, faute de se souvenir pourquoi on avait dit non. Le test du droit d'accès vaut sur la ligne de sortie comme sur celle d'entrée : une raison d'affaires s'écrit, un jugement sur les gens ne s'écrit pas.
+- **`Pourquoi eux` porte l'histoire, pas l'état du moment.** Il dit d'abord **pourquoi cette entreprise est entrée dans la base** : ce qui, chez eux, appelle l'offre. Le jour où son classement change, **la nouvelle raison s'écrit en tête, datée, et l'ancienne reste en dessous** : « repris le 23 septembre, ils ont un vrai besoin d'automatisation », puis « écartés le 23 septembre au matin, trop loin de ce que je fais », puis la ligne d'entrée. **Toute ligne ajoutée après la ligne d'entrée porte sa date**, et la première ligne du champ est toujours la raison qui vaut aujourd'hui. Le 23 septembre 2026, un champ s'ouvrait sur la raison d'une exclusion que la phrase suivante annulait, sans date pour dire laquelle était la bonne. Une entreprise mise de côté sans raison écrite est un travail qu'on refera dans six mois, faute de se souvenir pourquoi on avait dit non. Le test du droit d'accès vaut sur la ligne de sortie comme sur celle d'entrée : une raison d'affaires s'écrit, un jugement sur les gens ne s'écrit pas.
 - **Ces mots se disent en français, jamais en nom de champ.** « Une boîte qui est vraiment ta cible », « c'est lui qui décide », « celle-là, tu la mets de côté ». Jamais « je passe la correspondance cible à cœur de cible ». C'est la règle du vocabulaire de la base appliquée à ces quatre champs : l'utilisateur a des clients et des priorités, pas des colonnes.
 - **L'urgence d'un contact ne vit pas dans un champ de qualification, elle vit dans `Prochaine relance`.** Le contact a porté une `Priorité` jusqu'au 31 août 2026, remplie **3 fois sur 31** en douze jours d'usage : le champ est retiré du produit. La date de la prochaine action dit toute seule, et sans que personne ait à la tenir à jour, ce qu'une échelle haute, moyenne, basse disait mal. **Ne jamais la reconstituer sous un autre nom** : ni une mention d'urgence glissée dans `Notes`, ni un `Pourquoi eux` transformé en jugement sur qui rappeler d'abord. Ce qui est urgent est ce qui est daté.
 - **Un nom d'entreprise sous-entendu ne se résout jamais tout seul avant une écriture.** Quand une phrase désigne une entreprise par « l'entreprise », « la boîte », « chez eux », « leur », et que **deux organisations au moins** sont candidates dans la phrase ou dans la conversation, on **s'arrête et on demande laquelle** avant tout appel d'écriture. La personne nommée dans la phrase est le candidat le plus probable, jamais le sujet du tour précédent, mais la probabilité ne suffit pas ici : une organisation reclassée à tort porte une raison écrite qui rend le classement crédible, et personne ne rouvrira la fiche. « Après discussion avec Nicolas Betton, l'entreprise a déjà un CRM » parle de l'entreprise **de Nicolas Betton**, pas de celle dont on parlait il y a deux phrases. Dans le doute, une question de cinq mots : « chez Perfhomme, c'est ça ? »
@@ -51,12 +52,12 @@ Trois champs disent ce qui mérite le temps de l'utilisateur. Sur l'organisation
 ### 1. Identifier la personne
 
 ```
-queryRecords  Contacts  where=(Nom complet,like,%legoff%)
+queryRecords  Contacts  where=(Nom complet,like,%le goff%)
 ```
 
 La recherche ne tient pas compte de la casse. Si le nom entendu est incertain, chercher aussi sur les deux champs séparés : `(Nom,like,%goff%)~or(Prénom,like,%marie%)`.
 
-- **Aucun résultat** : la personne n'est pas dans la base. Passer la main à `creer-contact`, puis revenir ici. **Ne jamais écrire un Échange sans contact** : la base l'accepte, et l'échange devient introuvable.
+- **Aucun résultat** : **zéro résultat n'est pas une absence**, la seconde recherche des conventions, voyelles en `_`, part avant de le dire ou d'agir. Si elle est vide aussi, la personne n'est pas dans la base : passer la main à `creer-contact`, puis revenir ici. **Ne jamais écrire un Échange sans contact** : la base l'accepte, et l'échange devient introuvable.
 - **Plusieurs résultats** : demander lequel, en citant fonction et organisation. Ne pas deviner.
 - **Un résultat** : retenir son `Id`.
 
@@ -105,7 +106,7 @@ updateRecords  Échanges  id=55  {"nc_h27z___Opportunités_id": 3}
   "Date":    "2026-08-10",
   "Canal":   "Appel",
   "Sens":    "Sortant",
-  "Résumé":  "<le récit de l'utilisateur, reformulé, pas résumé à l'os>",
+  "Résumé":  "<selon la puce Résumé : ici un appel, donc le récit de l'utilisateur, reformulé>",
   "Contact":      {"Id": 12},
   "Opportunité":  {"Id": 4}
 }
@@ -117,7 +118,7 @@ updateRecords  Échanges  id=55  {"nc_h27z___Opportunités_id": 3}
 
 > **Une lecture qui conditionne une écriture est inconditionnelle.** Elle ne se saute pas parce qu'on croit connaître la réponse, et une réponse vide est un résultat, pas une raison de ne pas avoir appelé. Ce qui peut porter une condition, c'est une ligne **qui suit** l'écriture, jamais celle qui l'autorise.
 
-> **Ce qui est confirmé à l'utilisateur est recopié depuis ce qui a été envoyé, jamais depuis ce qu'on avait l'intention d'envoyer.** Une date, un montant, une étape ou une échéance se redisent **avec la valeur exacte du champ**, telle qu'elle figure dans l'appel qui vient de partir. « J'ai posé une relance au 2 septembre » est vérifiable en une seconde par qui ouvre la table ; « j'ai posé une relance » ne l'est pas, et « au 9 septembre » est un mensonge que personne n'ira contredire.
+> **Ce qui est confirmé à l'utilisateur est recopié depuis ce qui a été envoyé, jamais depuis ce qu'on avait l'intention d'envoyer.** Une date, un montant, une étape ou une échéance se redisent **avec la valeur exacte du champ**, telle qu'elle figure dans l'appel qui vient de partir. « J'ai posé une relance au 2 septembre » est vérifiable en une seconde par qui ouvre la table ; « j'ai posé une relance » ne l'est pas, et « au 9 septembre » est un mensonge que personne n'ira contredire. **Et une valeur proposée à la place de l'utilisateur obéit à la même règle** : elle est dans l'appel avant d'être dans la phrase, et relue dans la réponse de l'appel. Une proposition qui n'est que dans la phrase est une écriture annoncée qui n'a pas eu lieu.
 
 > **Une fonction, une entreprise ou un rôle prononcés par l'utilisateur s'écrivent dans le champ correspondant, dans le même appel.** « C'est lui le dirigeant » remplit `Fonction`. Une information dite et non écrite est perdue deux fois : elle ne sera pas dans la base, et personne ne saura qu'elle a été dite. La compétence d'import écrit la fonction de quatre contacts d'affilée sans qu'on le lui demande ; celle qui écoute n'a pas de raison de faire moins.
 
@@ -127,12 +128,15 @@ updateRecords  Échanges  id=55  {"nc_h27z___Opportunités_id": 3}
 | `Sens` | Entrant · Sortant |
 
 - `Objet` : une phrase courte et reconnaissable, c'est ce qui s'affiche dans le journal.
-- `Date` : celle de l'échange, pas celle de la saisie. **La date du jour se relit, elle ne se suppose pas.** Avant de convertir « aujourd'hui », « ce matin », « tout à l'heure », « hier », vérifier la date courante. Une session ouverte la veille et poursuivie le lendemain reste sur la date de son ouverture si personne ne la relit.
+- `Date` : celle de l'échange, pas celle de la saisie. **La date du jour se relit, elle ne se suppose pas.** Avant de convertir « aujourd'hui », « ce matin », « tout à l'heure », « hier », vérifier la date courante. Une session ouverte la veille et poursuivie le lendemain reste sur la date de son ouverture si personne ne la relit. **Sans jour dit, c'est le jour de la demande**, relu de la même façon, et il se dit dans la confirmation de l'étape 7. **Un échange déjà noté se signale par sa date et son objet, pas par une heure de saisie** : « tu as déjà un email noté aujourd'hui pour Sylvain Roy, sur la relance du devis ». L'heure de création que porte la base est celle de la saisie, en temps universel, et ne dit rien de l'heure de l'échange.
 - **Le sens se lit dans la phrase de l'utilisateur, ou il se demande.** « il m'a appelé », « j'ai été contacté », « il m'a écrit » sont entrants ; « je l'ai appelé », « je lui ai envoyé » sont sortants. « J'ai échangé avec », « j'ai discuté avec », « on s'est vus » ne disent rien et ne se tranchent pas.
 - **Quand la phrase ne dit rien, le sens part dans la question du canal, pas dans un tour de plus** : « c'était par quel canal, et c'est toi qui l'as sollicité ou c'est lui qui est venu ? ». Une question, deux champs, aucun tour supplémentaire.
 - **`Sens` n'a pas de valeur par défaut**, et aucune heuristique de plausibilité ne la remplace. Un rendez-vous en événement n'est pas plus sortant qu'entrant.
 - **Ce qui a été tranché se rend visible** : « je l'ai noté comme un échange que tu as provoqué, corrige-moi si c'est lui qui est venu ».
-- `Résumé` : garder ce que l'utilisateur a dit, y compris les détails humains qui serviront dans six mois. C'est la valeur du journal.
+- `Résumé` : **jamais vide, et sa forme dépend de ce qu'on consigne.**
+  - **Un récit de l'utilisateur**, appel, rendez-vous, échange de couloir : ce qu'il a dit, reformulé et non résumé à l'os, avec les détails humains qui serviront dans six mois. C'est la valeur du journal.
+  - **Un message rédigé par `rediger-email` ou `accroche-linkedin`** : une phrase, l'objet et la promesse du message, jamais son texte recopié. **Il se consigne une fois que l'utilisateur a dit qu'il est parti** ; s'il ne l'a pas dit, le demander avant d'écrire.
+  - **Un signal sans contenu**, invitation acceptée, ajout de relation : une phrase fixe, « Invitation acceptée, sans message. ». Un `Résumé` vide ne dit pas s'il n'y avait rien ou si personne n'a écrit, et c'est la seule question qu'on se pose en le relisant.
 - **Aucun tiret cadratin**, voir les garde-fous : l'interdiction vaut pour `Résumé` comme pour la phrase de confirmation.
 
 #### Écrire `Dernier échange` sur le contact, dans le même geste
@@ -169,7 +173,7 @@ updateRecords  Contacts  id=15  {"Statut relation": "À contacter", "Dernier éc
 
 **Faire avancer, jamais reculer.** Un contact déjà `En discussion`, `Client` ou `Dormant` ne redescend pas sur un échange de plus. Sur un contact que l'on vient de créer dans le même geste, la valeur se pose **à la création** plutôt qu'en deux appels.
 
-Cette écriture-là ne se demande pas : elle ne fait que consigner ce qui vient d'avoir lieu, et elle se dit en incise dans la phrase de confirmation. Les bascules de **fin de cycle**, `Client` et `Dormant`, restent à l'étape 4 : celles-là dépendent d'une affaire, et elles se proposent.
+Cette écriture-là ne se demande pas : elle ne fait que consigner ce qui vient d'avoir lieu, et elle se dit en incise dans la phrase de confirmation. Les bascules de **fin de cycle**, `Client`, `Perdu` ou `Dormant`, restent à l'étape 4 : celles-là dépendent d'une affaire, et elles se proposent.
 
 #### Ce que l'échange vient d'apprendre sur la qualification
 
@@ -197,7 +201,7 @@ updateRecords  Organisations  id=7   {"Pourquoi eux": "plannings gérés sur Exc
 
 **`Pourquoi eux` s'écrit avec les mots de l'utilisateur, en une ligne, et il vise l'entreprise et pas la personne.** « Ils perdent une demi-journée par semaine sur leurs devis » est un argument d'affaires. « Sympa, ouvert à la discussion » est un jugement sur quelqu'un, et il n'a rien à faire en base : le test est de se demander si on le lirait à voix haute à l'intéressé.
 
-**Un champ déjà rempli ne s'écrase pas sur une impression.** `Pourquoi eux` se complète quand l'échange apporte vraiment du neuf, et dans ce cas la nouvelle ligne s'ajoute à l'ancienne plutôt que de la remplacer. `Statut relation` et `Dernier échange`, eux, se réécrivent sans état d'âme : ce sont des champs du présent.
+**Un champ déjà rempli ne s'écrase pas sur une impression.** `Pourquoi eux` se complète quand l'échange apporte vraiment du neuf, et dans ce cas la nouvelle ligne s'écrit en tête, datée, au-dessus de l'ancienne, plutôt que de la remplacer. `Statut relation` et `Dernier échange`, eux, se réécrivent sans état d'âme : ce sont des champs du présent.
 
 ### 4. Refermer ce que l'échange termine
 
@@ -231,22 +235,32 @@ Le dégât d'une date laissée est différé et discret. Une tâche `Fait` dispa
 
 **Le contact, qui bascule avec son affaire.** C'est la troisième table, et la plus oubliée : `Statut relation` n'est écrit qu'à la création du contact, et `Prochaine relance` n'est jamais effacée. Un contact laissé à `À contacter` derrière une affaire gagnée, avec une relance échue qui dort, **reviendra tout seul dans le briefing du matin** le jour de cette échéance, pour une affaire signée depuis longtemps.
 
+**Avant d'écrire une bascule de fin de cycle, lire ce que le contact porte encore.** Deux lectures, inconditionnelles :
+
+```
+queryRecords  Opportunités  where=(Contact,eq,Aymeric Lompret)~and(Ouverte,eq,1)
+queryRecords  Tâches        where=(Contact,eq,Aymeric Lompret)~and(Ouverte,eq,1)
+```
+
+**Une autre affaire ouverte, ou une tâche ouverte qui ne dépend pas de l'affaire qu'on ferme : le statut ne bouge pas**, et la phrase de confirmation le dit, « Aymeric reste en discussion, il a encore l'affaire site vitrine en cours ». Les tâches de l'affaire fermée, elles, se proposent à la clôture comme d'habitude. Le 23 septembre 2026, un contact est passé en `Dormant` avec une affaire ouverte et une tâche en retard, et la réponse ne l'a remarqué qu'après l'écriture.
+
 ```
 updateRecords  Contacts  id=12  {"Statut relation": "Client", "Prochaine relance": null}
+updateRecords  Contacts  id=17  {"Statut relation": "Perdu", "Prochaine relance": null}
 ```
 
 | Ce que l'échange vient de faire | `Statut relation` | `Prochaine relance` |
 |---|---|---|
 | L'affaire passe `Gagnée` | `Client` | effacée, ou reportée à la prochaine échéance **réelle** |
-| L'affaire passe `Perdue` | `Dormant` | effacée |
+| L'affaire passe `Perdue` | `Perdu`, ou `Dormant` si l'utilisateur y croit encore | effacée, ou posée à la date de relance qu'il donne |
+
+**`Perdu` est la valeur par défaut, `Dormant` se gagne par la réponse de l'utilisateur.** La question de la relance à distance, posée à toute clôture perdue par `creer-opportunite`, étape 5, décide : « tu veux que je te le ressorte dans quelques mois ? ». Un oui donne `Dormant` et une `Prochaine relance` datée, un non ou un silence donne `Perdu`. « Ils ont trouvé une autre agence, c'est perdu » est un non.
 
 Valeurs admises : Nouveau · À contacter · En discussion · Client · Dormant · Perdu. **Ce tableau ne porte que les deux bascules de fin de cycle**, celles qu'une affaire commande. L'avancement ordinaire d'un contact, lui, se fait à chaque échange, sur le chemin normal de l'étape 3, et il ne dépend d'aucune affaire.
 
 > **Effacer une relance, c'est écrire `null` dessus, et le connecteur l'accepte.** Vérifié le 19 août 2026 sur `Contacts.Prochaine relance`, aux deux bouts du cycle, affaire gagnée et affaire perdue. Il n'y a donc pas de repli à prévoir : une relance qui n'a plus lieu d'être **s'efface**, elle ne se reporte pas faute de mieux. Reporter reste possible quand une échéance réelle existe, jamais pour contourner le champ.
 
- Comme pour l'étape de l'affaire, **proposer plutôt que poser d'office** : la bascule se dit en une incise dans la phrase de confirmation, « je passe Thomas en Client et j'enlève sa relance du 25 », et l'utilisateur peut refuser.
-
-**Ne pas retoucher l'échéance d'une tâche qu'on referme.** Elle dit quand la chose était attendue, pas quand elle a été faite. Une tâche close en retard reste close en retard, et ce retard est une information.
+ Comme pour l'étape de l'affaire, **proposer plutôt que poser d'office** : la bascule se dit en une incise dans la phrase de confirmation, « je passe Thomas en client et j'enlève sa relance du 25 », et l'utilisateur peut refuser. Sur une affaire perdue : « je passe Charlotte en perdu et j'enlève sa relance du 12, sauf si tu veux que je te la ressorte dans quelques mois ».
 
 #### Refermer une tâche sans échange à consigner
 
@@ -286,7 +300,7 @@ createRecords  Tâches
 | `Priorité` | Haute · Moyenne · Basse |
 | `Statut` | À faire · En cours · Fait · Annulée |
 
-Sans échéance annoncée, en proposer une plutôt que de laisser le champ vide : une tâche sans date ne remonte jamais dans « Ma journée ».
+**Sans échéance annoncée, en poser une dans l'appel de création**, puis la dire au passé avec son jour exact : « je l'ai mise au 26 septembre, dis-moi si tu préfères un autre jour ». Une tâche sans date ne remonte jamais dans « Ma journée ». **Le jour annoncé est celui qui est dans l'appel**, relu dans l'appel au moment d'écrire la phrase : le 23 septembre 2026, une échéance annoncée au 26 a été écrite au 23, le jour même, et rien à l'écran ne pouvait le montrer.
 
 ### 6. Reporter la prochaine relance
 
@@ -298,7 +312,7 @@ updateRecords  Contacts  id=12  {"Prochaine relance": "2026-08-17"}
 
 C'est ce champ qui fait remonter la personne dans la vue « À relancer » et dans l'accueil du matin. Ne pas l'oublier quand l'utilisateur dit « je le rappelle la semaine prochaine ».
 
-> **Tout échange sortant consigné sans réponse attendue pose `Prochaine relance` et une tâche, quel que soit le chemin par lequel il est arrivé.** Un email, une accroche LinkedIn, un appel sans réponse, un message resté sans suite : la relance ne dépend pas de la compétence qui a rédigé le message, elle dépend de ce que l'échange est. **Une règle qui dépend du chemin d'accès n'est pas une règle du produit**, c'est une règle de l'une de ses portes, et elle ne s'applique qu'à ceux qui passent par là. Sans date donnée par l'utilisateur, en proposer une et le dire, comme pour la date de clôture d'une affaire.
+> **Tout échange sortant consigné sans réponse attendue pose `Prochaine relance` et une tâche, quel que soit le chemin par lequel il est arrivé.** Un email, une accroche LinkedIn, un appel sans réponse, un message resté sans suite : la relance ne dépend pas de la compétence qui a rédigé le message, elle dépend de ce que l'échange est. **Une règle qui dépend du chemin d'accès n'est pas une règle du produit**, c'est une règle de l'une de ses portes, et elle ne s'applique qu'à ceux qui passent par là. Sans date donnée par l'utilisateur, **la poser dans l'appel**, puis la dire au passé avec son jour exact, comme l'échéance d'une tâche à l'étape 5.
 
 **Et l'inverse est vrai aussi** : une relance qui n'a plus lieu d'être **s'efface**, elle ne se laisse pas expirer. C'est traité à l'étape 4 avec le reste du bouclage.
 
@@ -314,7 +328,7 @@ Une phrase, pas un tableau. « C'est noté : appel du 10 août avec Marie Le Gof
 
 - **Un Échange sans Contact est un échange perdu.** La base ne l'interdit pas, ce skill si.
 - **Une chose à faire va dans Tâches**, jamais dans le texte du résumé.
-- **Ne rien inventer** : ni montant, ni date, ni intention que l'utilisateur n'a pas énoncés. Si un champ manque, le laisser vide ou demander.
+- **Ne rien inventer** : ni montant ni intention que l'utilisateur n'a pas énoncés. Si un champ manque, le laisser vide ou demander. **Une date n'est pas un champ manquant** : la date d'un échange non dite suit la puce `Date` de l'étape 3, et une échéance non dite suit l'étape 5.
 - **Plusieurs échanges dans un même récit** (« j'ai appelé trois personnes ce matin ») : un enregistrement par personne, pas un fourre-tout. `createRecords` accepte plusieurs enregistrements en un appel.
 - **Une tâche se referme sur le mot de l'utilisateur, jamais sur une déduction.** Regarder les tâches ouvertes est obligatoire, les fermer ne l'est pas.
 - **Un bouclage qui ne ferme pas les trois tables n'est pas un bouclage.** `Tâches`, `Opportunités`, `Contacts`. Fermer les deux premières et oublier la troisième laisse une relance armée sur un client signé, et c'est le briefing du matin qui la fera exploser.

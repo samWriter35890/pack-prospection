@@ -5,7 +5,7 @@ description: Compléter l'identité publique d'une entreprise déjà dans la bas
 
 # Identité d'une entreprise
 
-Remplit, depuis l'open data de l'État, les six champs d'identité d'une organisation **déjà en base**, et rien d'autre. Ce geste **complète, il ne crée pas** : une organisation absente de la base se dit en une phrase, « je n'ai pas cette entreprise dans ta base », et rien ne se crée ici. Il ne se déclenche jamais de lui-même à la création d'un contact.
+Remplit, depuis l'open data de l'État, les six champs d'identité d'une organisation **déjà en base**, plus la ville quand elle manquait, et rien d'autre. Ce geste **complète, il ne crée pas** : une organisation absente de la base, seconde recherche comprise, se dit en une phrase, « je n'ai pas cette entreprise dans ta base », et rien ne se crée ici. Il ne se déclenche jamais de lui-même à la création d'un contact.
 
 ---
 
@@ -18,11 +18,12 @@ Remplit, depuis l'open data de l'État, les six champs d'identité d'une organis
 - **Relire l'enregistrement renvoyé après chaque écriture.** C'est le seul garde-fou contre une faute de frappe sur un nom de champ, et il ne coûte aucun appel : la réponse contient déjà l'enregistrement complet.
 - **Ce qui s'annonce à l'utilisateur se lit sur l'enregistrement relu, jamais sur l'appel envoyé.** Un champ ne se nomme dans une phrase de confirmation qu'après être revenu **rempli** dans la réponse. Le 25 août 2026, « Frères Boyer est classée cœur de cible avec sa raison » a été dit à l'écran alors que le champ est resté vide, et la compétence de bilan a compté une entreprise classée de trop quarante minutes plus tard. **Un champ annoncé et absent est pire qu'un champ absent** : il éteint la seule vérification que l'utilisateur pouvait faire, et le mensonge se propage ensuite dans les chiffres.
 - **Les dates s'écrivent `AAAA-MM-JJ`.**
+- **Une heure lue en base est en temps universel, jamais en heure de Paris.** `CreatedAt`, `UpdatedAt` et tout champ date et heure reviennent en UTC : `10:16` en base veut dire 12 h 16 à Paris en été, 11 h 16 en hiver, et après 22 h en été le jour lui-même change. **Une heure se dit convertie, ou ne se dit pas** : la date suffit presque toujours. Le 23 septembre 2026, un échange consigné à 12 h 16 a été annoncé « noté ce matin à 10h16 ».
 - **Un lien s'écrit `{"Id": <numéro>}` sur le champ de lien à la création, et par sa colonne de clé étrangère ensuite.** `updateRecords` sur un **champ de lien** échoue toujours, quelle que soit la forme employée, sur `SQLITE_ERROR: near "(": syntax error` : c'est une limite du connecteur, pas une faute de syntaxe. Mais la même relation porte aussi une **colonne de clé étrangère**, de la forme `nc_<préfixe>___<Table liée>_id`, et **celle-là s'écrit en `updateRecords` comme un champ ordinaire** : `{"nc_h27z___Opportunités_id": 3}` rattache l'enregistrement à l'affaire n° 3, et le lien revient résolu avec son libellé dès la réponse. **Le nom exact de cette colonne se lit dans un `getRecord` sur la table concernée, jamais de mémoire** : le préfixe est propre à chaque base et il change d'un client à l'autre. **Deux conséquences :** créer dans l'ordre reste la bonne façon de faire, un lien posé à la création valant mieux qu'un rattrapage ; et **un lien oublié se répare en une écriture**, sans jamais supprimer ni recréer l'enregistrement.
 - **Une valeur hors liste est refusée**, et la réponse rappelle les valeurs valides. Ne jamais inventer une valeur de liste.
 - **`fields` supprime le bruit technique mais vide le libellé des liens** : un champ de lien demandé dans `fields` ne renvoie que son `Id`.
 - **Un filtre ne traverse pas un lien.** `(Organisation.Correspondance cible,eq,Cœur de cible)` sur Contacts échoue sur `Column alias 'Organisation.Correspondance cible' not found.` Il n'existe aucune syntaxe de traversée dans ce connecteur. Ce qu'un filtre sait faire sur un champ de lien, c'est comparer son **libellé affiché** : `(Organisation,in,Odyssée 29,Super Super)` fonctionne. Une question qui croise une propriété de l'organisation et une propriété du contact se lit donc en **deux appels**, les organisations d'abord. Échec bruyant, donc sans danger.
-- **Les caractères accentués s'écrivent littéralement dans un filtre, jamais échappés.** `(Prénom,like,%fabrice%)` fonctionne. Sur un **nom de colonne**, un échappement de la forme `\uXXXX` échoue bruyamment, `Column alias 'Pr\u00e9nom' not found.`, et se corrige donc tout seul. Sur une **valeur**, il rend `"records": []` **sans aucune erreur** : `(Nom,like,%g\u00e9rard%)` ne trouve pas Gérard et ne le dit pas, ce qui est indiscernable d'une absence. C'est le second échec silencieux du connecteur après `aggregate`, et le plus facile à déclencher, puisque la plupart des noms de personnes et d'entreprises français portent un accent. **Une recherche qui rend zéro résultat sur un terme accentué se rejoue une fois, en ASCII strict, avant de conclure à l'absence.** Un doublon créé sur cette base est indétectable jusqu'au jour où quelqu'un rouvre la table.
+- **Les caractères accentués s'écrivent littéralement dans un filtre, jamais échappés.** `(Prénom,like,%fabrice%)` fonctionne. Sur un **nom de colonne**, un échappement de la forme `\uXXXX` échoue bruyamment, `Column alias 'Pr\u00e9nom' not found.`, et se corrige donc tout seul. Sur une **valeur**, il rend `"records": []` **sans aucune erreur** : `(Nom,like,%g\u00e9rard%)` ne trouve pas Gérard et ne le dit pas, ce qui est indiscernable d'une absence. C'est le second échec silencieux du connecteur après `aggregate`, et le plus facile à déclencher, puisque la plupart des noms de personnes et d'entreprises français portent un accent. **Une recherche qui rend zéro résultat sur un terme accentué se rejoue une fois, en ASCII strict, avant de conclure à l'absence.** Un doublon créé sur cette base est indétectable jusqu'au jour où quelqu'un rouvre la table. **Et le terme cherché part tel que l'utilisateur l'a tapé, jamais retouché.** Retirer un accent ou un tréma est la même faute dans l'autre sens : `(Nom,like,%joia%)` ne trouve pas `Joïa`, et l'absence a été dite à voix haute le 23 septembre 2026, sur une organisation en base depuis un mois. **Sur zéro résultat, une seconde recherche part, chaque voyelle remplacée par `_`**, le joker d'un caractère, qui accepte une lettre accentuée : `%j___%` rend `Joïa`, `%g_r_rd%` rend `Fabrice Gerard`, vérifié le 2 octobre 2026. Elle ratisse plus large, donc **ses résultats se lisent avant de se dire** : ne retenir que les noms qui, accents ôtés, s'écrivent comme le terme cherché. **Seule une seconde recherche vide autorise à dire que la personne ou l'entreprise n'est pas en base.**
 - **Quand la base ne répond pas, dire trois choses et rien de plus** : que la base est injoignable pour l'instant, **ce qui n'a donc pas été écrit**, et qu'on peut réessayer sur un mot. Si la panne persiste, renvoyer vers SenseAct. **Ne jamais diagnostiquer l'hébergement ni demander une manoeuvre technique** : le client n'administre pas son serveur, c'est SenseAct qui l'héberge, et un timeout ne dit pas d'où il vient.
 
 
@@ -39,6 +40,8 @@ Six colonnes de la table Organisations viennent de l'open data et de nulle part 
 ```
 1. queryRecords  Organisations  where=(Nom,like,%guiho%)  fields=["Nom","Ville","SIRET"]
                                 ← toujours. Si SIRET est déjà rempli, le geste s'arrête ici
+                                ← zéro résultat n'est pas une absence : la seconde
+                                  recherche des conventions part avant de le dire
 2. la ville, ou rien.            ← si Ville est vide, la demander à l'utilisateur,
                                    deux mots, avant toute recherche
 3. lire la page  https://recherche-entreprises.api.gouv.fr/search
@@ -55,13 +58,16 @@ Six colonnes de la table Organisations viennent de l'open data et de nulle part 
   "Adresse":   "ZA des Pedras",
   "NAF":       "25.12Z",
   "Effectifs": "10 à 19",
-  "Création":  "1993-04-05"
-}
+  "Création":  "1993-04-05",
+  "Ville":     "Saint-André-des-Eaux"
+}                               ← Ville seulement si elle était vide à la ligne 1
 ```
 
 > **La ligne 2 fait partie de la recherche, elle ne la précède pas.** Sans ville, le nom seul rapporte le mauvais SIRET avec l'aplomb du bon, et personne ne rouvrira la fiche. Mesuré le 1er septembre 2026 sur les 31 organisations de la base de référence, dont 29 sans ville : `Habil` rend **315 résultats** et le premier s'appelle exactement `HABIL`, à Plaisir dans les Yvelines. Avec `departement=35`, il rend **un seul** résultat, `METIERS DES ENERGIES`, enseigne `HABIL`, à Rennes, c'est-à-dire celui de la base. **Le nom seul ne trouve pas moins, il trouve faux.**
 >
 > **Et la ville ne se met jamais dans `q`.** Toujours le 1er septembre 2026 : `Perfhomme` rend 23 résultats, `Perfhomme Rennes` en rend **zéro**. Le champ de recherche n'est pas une barre d'adresse, il cherche une dénomination.
+
+> **Quand le registre ne répond pas, les mêmes trois phrases que pour la base, et rien de plus** : que le registre des entreprises est injoignable pour l'instant, **que rien n'a donc été écrit**, et qu'on peut réessayer sur un mot. Une seule nouvelle lecture dans le tour, pas davantage. **Ne jamais diagnostiquer** : ni la forme de l'adresse, ni un intermédiaire réseau, ni une panne supposée du côté de l'État. Le 23 septembre 2026, cinq lectures ont échoué sur trois tours et deux formes d'adresse, et deux des trois messages improvisés expliquaient une cause que personne ne connaissait.
 
 **La ligne 4 n'est pas une politesse, c'est la règle du pack appliquée telle quelle** : rien ne s'écrit sans un mot de l'utilisateur, et une identité publique ne fait pas exception. Ce qu'on lui montre tient en une phrase, en français, sans nom de champ :
 
@@ -69,7 +75,7 @@ Six colonnes de la table Organisations viennent de l'open data et de nulle part 
 
 **Ce qui rend cette question honnête, c'est ce qu'elle affiche.** La commune, l'activité en clair et l'année de création sont les trois choses sur lesquelles l'utilisateur reconnaît son entreprise ou dit non. Un SIRET affiché seul ne se vérifie pas, il se croit.
 
-**Six champs et pas un de plus.** La réponse de l'API est beaucoup plus riche : forme juridique, numéro de TVA, chiffre d'affaires, résultat net. **Ces colonnes n'existent pas dans la base et rien de tout cela ne se recopie**, ni dans un autre champ, ni dans `Notes`.
+**Six champs, plus la ville quand elle manquait, et pas un de plus.** La réponse de l'API est beaucoup plus riche : forme juridique, numéro de TVA, chiffre d'affaires, résultat net. **Ces colonnes n'existent pas dans la base et rien de tout cela ne se recopie**, ni dans un autre champ, ni dans `Notes`.
 
 | Champ de la base | Ce qu'on lit dans le premier résultat | La règle |
 |---|---|---|
@@ -79,6 +85,8 @@ Six colonnes de la table Organisations viennent de l'open data et de nulle part 
 | `Création` | `date_creation` | `AAAA-MM-JJ`, format déjà celui du champ |
 | `Effectifs` | `tranche_effectif_salarie`, traduit | Voir la table ci-dessous |
 | `Dirigeant` | `dirigeants[0]` | Voir la règle ci-dessous. **Souvent à ne pas écrire** |
+
+**La ville demandée à la ligne 2 s'écrit à la ligne 5, dans le même appel que le SIRET.** Elle a été demandée parce qu'elle manquait, et une réponse de l'utilisateur qui ne finit pas en base est une information perdue deux fois. Elle s'écrit **telle que l'utilisateur l'a dite**, « Brest », en casse normale. S'il n'a donné qu'un département ou une région, c'est la commune du résultat qu'il vient de reconnaître qui s'écrit, en casse normale, `SAINT-ANDRE-DES-EAUX` devenant `Saint-André-des-Eaux`. Le 23 septembre 2026, la commune a été dite à voix haute, « il est à Brest », et la fiche relue portait `Ville` vide, les cinq autres champs justes.
 
 **Les tranches, dix valeurs de la base contre les codes de l'INSEE :**
 
@@ -105,10 +113,10 @@ Six colonnes de la table Organisations viennent de l'open data et de nulle part 
 
 > **Un dirigeant publié n'est pas un interlocuteur.** C'est un nom d'état civil pris dans un registre, et il porte une année de naissance que **rien n'autorise à écrire en base**. S'il devient réellement l'un des interlocuteurs de l'utilisateur, il prend **en plus** une fiche Contact, par le geste ordinaire de cette compétence, avec ce que l'utilisateur en dit.
 
-**Trois choses que ce geste n'écrit jamais**, et chacune ferme une porte qui se rouvrirait toute seule :
+**Deux choses que ce geste n'écrit jamais, et une qu'il n'écrase jamais**, et chacune ferme une porte qui se rouvrirait toute seule :
 
 - **Ni `Secteur` ni `Taille`.** La correspondance du code NAF vers la liste `Secteur` et le recouvrement entre `Effectifs` et `Taille` sont deux questions ouvertes, tranchées ailleurs ou pas encore. Une compétence qui trancherait l'une des deux en passant écrirait la règle à l'endroit où personne ne la retrouvera.
-- **Ni `Ville` déjà renseignée.** L'open data rend la commune en majuscules sans accent, `LAILLE`, `SAINT-ANDRE-DES-EAUX`. Elle **ne remplace jamais** ce que l'utilisateur a saisi. Sur une organisation dont `Ville` est vide, elle se propose comme le reste, et s'écrit en casse normale.
+- **`Ville` déjà renseignée ne s'écrase jamais.** L'open data rend la commune en majuscules sans accent, `LAILLE`, `SAINT-ANDRE-DES-EAUX`, et elle **ne remplace jamais** ce que l'utilisateur a saisi. Vide, elle s'écrit, voir sous la table des six champs.
 - **Ni quoi que ce soit sur une société cessée.** `etat_administratif` vaut `C` : on le dit à l'utilisateur en français, « celle que je trouve sous ce nom a fermé, c'est peut-être une homonyme », et **rien ne part en base**. Cas réel, `SENSEACT AVOCATS` le 1er septembre 2026.
 
 > **Le nom rendu doit porter le nom cherché, sinon on ne propose pas, on montre.** L'API cherche une dénomination légale et des enseignes déclarées, pas une marque, **et elle est floue** : elle ne rend pas zéro quand elle ne trouve pas, elle rend autre chose. Mesuré le 1er septembre 2026 : `Cabinet Dupont Conseil` rend en premier `YOUR ENGLISH WORKSHOP`, `Agence Galopins` rend `GERARD GALOPIN`. **La réponse ne porte aucun score**, il n'y a donc rien à comparer : le seul test qui tranche est textuel, les mots du nom cherché contre ceux de `nom_complet`, `nom_raison_sociale`, `sigle` et `siege.liste_enseignes`, accents, casse et forme juridique mis de côté. Les mots correspondent, on propose. Ils ne correspondent pas, ou plusieurs résultats correspondent, on montre **trois lignes au plus, chacune avec sa commune et son activité**, et on demande. **On ne rattrape jamais un doute à la main.**
@@ -121,7 +129,7 @@ Six colonnes de la table Organisations viennent de l'open data et de nulle part 
 
 ## Garde-fous
 
-- **Ce geste complète une organisation, il n'en crée aucune.** Une organisation absente de la base se dit et s'arrête là. La créer est le geste de la compétence qui crée les contacts, avec la personne qui va avec.
+- **Ce geste complète une organisation, il n'en crée aucune.** Une organisation absente de la base, seconde recherche comprise, se dit et s'arrête là. La créer est le geste de la compétence qui crée les contacts, avec la personne qui va avec.
 - **Une entreprise à la fois.** Une liste d'organisations n'est pas une demande de ce geste : chaque rapprochement se regarde par l'utilisateur, sur une commune et une activité, et quinze rapprochements d'un coup, c'est quinze SIRET dont aucun n'a été regardé.
 - **La recherche part par une lecture de page, jamais par une commande.** Une commande échoue en rouge dans la conversation avant de se rabattre, et le client la voit.
 - **Le vocabulaire de la base reste dans la base.** Ne jamais dire « table », « champ », « enregistrement », « statut », ni citer une valeur de liste entre guillemets dans une phrase adressée à l'utilisateur. Il a des clients, des affaires, des rendez-vous et des objectifs, pas un schéma. « La table Objectifs ne contient aucun objectif actif » se dit « tu ne m'as pas encore posé d'objectif ». Le pack se vend sur la promesse qu'il n'ouvre jamais NoCoDB : une phrase qui cite le schéma lui apprend qu'il y en a un. **Les guillemets sont le signal, pas le mot.** « Il passe à « à contacter » » cite la base ; « il est maintenant dans ceux que tu dois contacter » dit la même chose. Une valeur de liste qui se lit bien en français se **traduit** quand même : c'est de la citer qui trahit, pas de la comprendre. **Et la règle porte sur le parcours, pas sur le mode d'emploi.** Quand l'utilisateur interroge la construction de sa base, compare deux champs, ou demande pourquoi une valeur plutôt qu'une autre, il pose une question d'outil et attend une réponse d'outil : les noms de champs et les valeurs se disent. **Le basculement est marqué par la question, jamais par la compétence.** Dès le tour suivant qui parle d'une personne ou d'une entreprise, on revient au français ordinaire.
