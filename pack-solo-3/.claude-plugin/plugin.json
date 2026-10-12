@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "pack-solo-3",
+  "displayName": "Pack Solo 3 (en construction)",
+  "version": "3.0.0-alpha.1",
+  "description": "Nouveau Pack Solo en construction, nom provisoire. Ne pas installer chez un client : il remplacera pack-solo en 3.0.0.",
+  "author": {
+    "name": "SenseAct",
+    "email": "contact@senseact.fr",
+    "url": "https://senseact.fr"
+  },
+  "homepage": "https://senseact.fr",
+  "keywords": ["crm", "prospection", "nocodb", "senseact"]
+}

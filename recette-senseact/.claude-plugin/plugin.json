@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "recette-senseact",
+  "displayName": "Recette SenseAct",
+  "version": "1.0.0",
+  "description": "Outil interne de SenseAct pour enregistrer un test dans la table Recette. Jamais livre a un client.",
+  "author": {
+    "name": "SenseAct",
+    "email": "contact@senseact.fr",
+    "url": "https://senseact.fr"
+  },
+  "homepage": "https://senseact.fr",
+  "keywords": ["recette", "senseact"]
+}
