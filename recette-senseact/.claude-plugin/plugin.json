@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "recette-senseact",
   "displayName": "Recette SenseAct",
   "version": "1.0.0",
