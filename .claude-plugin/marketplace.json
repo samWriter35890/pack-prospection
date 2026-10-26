@@ -35,7 +35,7 @@
       "name": "pack-solo-3",
       "source": "./pack-solo-3",
       "description": "Nouveau Pack Solo en construction, nom provisoire. Ne pas installer chez un client : il remplacera pack-solo en 3.0.0.",
-      "version": "3.0.0-alpha.3",
+      "version": "3.0.0-alpha.4",
       "author": {
         "name": "SenseAct",
         "email": "contact@senseact.fr",
