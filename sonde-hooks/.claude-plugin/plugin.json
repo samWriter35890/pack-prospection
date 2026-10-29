@@ -1,7 +1,7 @@
 {
   "name": "sonde-hooks",
   "displayName": "Sonde hooks SenseAct",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Outil interne de SenseAct pour verifier quels hooks tournent dans Cowork. Jamais livre a un client.",
   "author": {
     "name": "SenseAct",

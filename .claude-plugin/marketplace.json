@@ -73,7 +73,7 @@
       "name": "sonde-hooks",
       "source": "./sonde-hooks",
       "description": "Outil interne de SenseAct pour verifier quels hooks tournent dans Cowork. Jamais livre a un client.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "SenseAct",
         "email": "contact@senseact.fr",
