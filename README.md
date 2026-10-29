@@ -1,6 +1,6 @@
 # Marché des plugins SenseAct
 
-Ce dépôt distribue les plugins SenseAct pour l'assistant Claude. Le seul qui vous concerne est **Pack Solo**. Les deux autres, **Pack Solo 3 (en construction)** et **Recette SenseAct**, servent au travail interne de SenseAct : ne les installez pas.
+Ce dépôt distribue les plugins SenseAct pour l'assistant Claude. Le seul qui vous concerne est **Pack Solo**. Les autres, **Pack Solo 3 (en construction)**, **Recette SenseAct** et **Sonde hooks SenseAct**, servent au travail interne de SenseAct : ne les installez pas.
 
 SenseAct est une agence d'automatisation et d'IA pour TPE et PME, basée à Rennes. [senseact.fr](https://senseact.fr)
 
